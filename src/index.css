@@ -1,96 +1,145 @@
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,100..1000;1,9..40,100..1000&family=Fraunces:ital,opsz,wght@0,9..144,100..900;1,9..144,100..900&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-/* Definition of the design system. All colors, gradients, fonts, etc should be defined here. 
-All colors MUST be HSL.
-*/
-
 @layer base {
   :root {
-    --background: 0 0% 100%;
-    --foreground: 222.2 84% 4.9%;
+    /* Nature-inspired palette */
+    --background: 45 30% 97%;
+    --foreground: 30 25% 15%;
 
-    --card: 0 0% 100%;
-    --card-foreground: 222.2 84% 4.9%;
+    --card: 45 40% 99%;
+    --card-foreground: 30 25% 15%;
 
-    --popover: 0 0% 100%;
-    --popover-foreground: 222.2 84% 4.9%;
+    --popover: 45 40% 99%;
+    --popover-foreground: 30 25% 15%;
 
-    --primary: 222.2 47.4% 11.2%;
-    --primary-foreground: 210 40% 98%;
+    /* Fresh leaf green */
+    --primary: 142 45% 38%;
+    --primary-foreground: 45 30% 98%;
 
-    --secondary: 210 40% 96.1%;
-    --secondary-foreground: 222.2 47.4% 11.2%;
+    /* Earth tone */
+    --secondary: 35 30% 88%;
+    --secondary-foreground: 30 25% 20%;
 
-    --muted: 210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 46.9%;
+    /* Muted sage */
+    --muted: 120 15% 92%;
+    --muted-foreground: 30 15% 45%;
 
-    --accent: 210 40% 96.1%;
-    --accent-foreground: 222.2 47.4% 11.2%;
+    /* Sky blue accent */
+    --accent: 200 75% 55%;
+    --accent-foreground: 200 90% 98%;
 
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 210 40% 98%;
+    --destructive: 0 72% 51%;
+    --destructive-foreground: 0 0% 100%;
 
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 222.2 84% 4.9%;
+    --border: 35 25% 88%;
+    --input: 35 25% 88%;
+    --ring: 142 45% 38%;
 
-    --radius: 0.5rem;
+    --radius: 0.75rem;
 
-    --sidebar-background: 0 0% 98%;
+    /* Custom garden colors */
+    --leaf: 142 45% 38%;
+    --leaf-light: 142 40% 75%;
+    --earth: 30 35% 35%;
+    --earth-light: 35 30% 88%;
+    --sky: 200 75% 55%;
+    --sky-light: 200 60% 90%;
+    --sun: 45 95% 60%;
+    --sun-light: 45 90% 88%;
+    --moisture: 195 80% 50%;
+    --moisture-light: 195 70% 88%;
+    --warning: 35 95% 55%;
+    --warning-light: 35 90% 88%;
 
-    --sidebar-foreground: 240 5.3% 26.1%;
+    /* Sidebar */
+    --sidebar-background: 142 35% 22%;
+    --sidebar-foreground: 45 30% 95%;
+    --sidebar-primary: 45 30% 95%;
+    --sidebar-primary-foreground: 142 35% 22%;
+    --sidebar-accent: 142 30% 28%;
+    --sidebar-accent-foreground: 45 30% 95%;
+    --sidebar-border: 142 30% 30%;
+    --sidebar-ring: 142 45% 50%;
 
-    --sidebar-primary: 240 5.9% 10%;
+    /* Gradients */
+    --gradient-leaf: linear-gradient(135deg, hsl(142 45% 38%), hsl(155 50% 32%));
+    --gradient-earth: linear-gradient(135deg, hsl(30 35% 35%), hsl(25 40% 28%));
+    --gradient-sky: linear-gradient(135deg, hsl(200 75% 55%), hsl(210 80% 45%));
+    --gradient-sun: linear-gradient(135deg, hsl(45 95% 60%), hsl(35 90% 50%));
+    --gradient-nature: linear-gradient(135deg, hsl(142 45% 38%) 0%, hsl(200 75% 55%) 100%);
+    --gradient-card: linear-gradient(180deg, hsl(45 40% 99%) 0%, hsl(45 30% 96%) 100%);
 
-    --sidebar-primary-foreground: 0 0% 98%;
-
-    --sidebar-accent: 240 4.8% 95.9%;
-
-    --sidebar-accent-foreground: 240 5.9% 10%;
-
-    --sidebar-border: 220 13% 91%;
-
-    --sidebar-ring: 217.2 91.2% 59.8%;
+    /* Shadows */
+    --shadow-leaf: 0 4px 20px -4px hsl(142 45% 38% / 0.25);
+    --shadow-soft: 0 4px 24px -6px hsl(30 25% 15% / 0.12);
+    --shadow-glow: 0 0 40px hsl(142 45% 38% / 0.15);
   }
 
   .dark {
-    --background: 222.2 84% 4.9%;
-    --foreground: 210 40% 98%;
+    --background: 30 20% 8%;
+    --foreground: 45 30% 95%;
 
-    --card: 222.2 84% 4.9%;
-    --card-foreground: 210 40% 98%;
+    --card: 30 18% 12%;
+    --card-foreground: 45 30% 95%;
 
-    --popover: 222.2 84% 4.9%;
-    --popover-foreground: 210 40% 98%;
+    --popover: 30 18% 12%;
+    --popover-foreground: 45 30% 95%;
 
-    --primary: 210 40% 98%;
-    --primary-foreground: 222.2 47.4% 11.2%;
+    --primary: 142 50% 45%;
+    --primary-foreground: 30 20% 8%;
 
-    --secondary: 217.2 32.6% 17.5%;
-    --secondary-foreground: 210 40% 98%;
+    --secondary: 30 15% 18%;
+    --secondary-foreground: 45 30% 90%;
 
-    --muted: 217.2 32.6% 17.5%;
-    --muted-foreground: 215 20.2% 65.1%;
+    --muted: 30 12% 18%;
+    --muted-foreground: 45 15% 60%;
 
-    --accent: 217.2 32.6% 17.5%;
-    --accent-foreground: 210 40% 98%;
+    --accent: 200 70% 50%;
+    --accent-foreground: 30 20% 8%;
 
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 210 40% 98%;
+    --destructive: 0 65% 45%;
+    --destructive-foreground: 0 0% 100%;
 
-    --border: 217.2 32.6% 17.5%;
-    --input: 217.2 32.6% 17.5%;
-    --ring: 212.7 26.8% 83.9%;
-    --sidebar-background: 240 5.9% 10%;
-    --sidebar-foreground: 240 4.8% 95.9%;
-    --sidebar-primary: 224.3 76.3% 48%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 240 3.7% 15.9%;
-    --sidebar-accent-foreground: 240 4.8% 95.9%;
-    --sidebar-border: 240 3.7% 15.9%;
-    --sidebar-ring: 217.2 91.2% 59.8%;
+    --border: 30 15% 20%;
+    --input: 30 15% 20%;
+    --ring: 142 50% 45%;
+
+    --leaf: 142 50% 45%;
+    --leaf-light: 142 35% 25%;
+    --earth: 30 25% 55%;
+    --earth-light: 30 15% 20%;
+    --sky: 200 70% 50%;
+    --sky-light: 200 50% 20%;
+    --sun: 45 90% 55%;
+    --sun-light: 45 70% 20%;
+    --moisture: 195 75% 45%;
+    --moisture-light: 195 50% 18%;
+    --warning: 35 90% 50%;
+    --warning-light: 35 70% 18%;
+
+    --sidebar-background: 30 20% 6%;
+    --sidebar-foreground: 45 30% 95%;
+    --sidebar-primary: 142 50% 45%;
+    --sidebar-primary-foreground: 30 20% 8%;
+    --sidebar-accent: 30 15% 12%;
+    --sidebar-accent-foreground: 45 30% 95%;
+    --sidebar-border: 30 12% 15%;
+    --sidebar-ring: 142 50% 45%;
+
+    --gradient-leaf: linear-gradient(135deg, hsl(142 50% 45%), hsl(155 55% 38%));
+    --gradient-earth: linear-gradient(135deg, hsl(30 25% 55%), hsl(25 30% 45%));
+    --gradient-sky: linear-gradient(135deg, hsl(200 70% 50%), hsl(210 75% 40%));
+    --gradient-sun: linear-gradient(135deg, hsl(45 90% 55%), hsl(35 85% 45%));
+    --gradient-nature: linear-gradient(135deg, hsl(142 50% 45%) 0%, hsl(200 70% 50%) 100%);
+    --gradient-card: linear-gradient(180deg, hsl(30 18% 12%) 0%, hsl(30 15% 10%) 100%);
+
+    --shadow-leaf: 0 4px 20px -4px hsl(142 50% 45% / 0.3);
+    --shadow-soft: 0 4px 24px -6px hsl(0 0% 0% / 0.4);
+    --shadow-glow: 0 0 40px hsl(142 50% 45% / 0.2);
   }
 }
 
@@ -100,6 +149,138 @@ All colors MUST be HSL.
   }
 
   body {
-    @apply bg-background text-foreground;
+    @apply bg-background text-foreground font-sans antialiased;
   }
+
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-display;
+  }
+}
+
+@layer utilities {
+  .font-display {
+    font-family: 'Fraunces', serif;
+  }
+
+  .font-sans {
+    font-family: 'DM Sans', sans-serif;
+  }
+
+  .gradient-leaf {
+    background: var(--gradient-leaf);
+  }
+
+  .gradient-earth {
+    background: var(--gradient-earth);
+  }
+
+  .gradient-sky {
+    background: var(--gradient-sky);
+  }
+
+  .gradient-sun {
+    background: var(--gradient-sun);
+  }
+
+  .gradient-nature {
+    background: var(--gradient-nature);
+  }
+
+  .gradient-card {
+    background: var(--gradient-card);
+  }
+
+  .shadow-leaf {
+    box-shadow: var(--shadow-leaf);
+  }
+
+  .shadow-soft {
+    box-shadow: var(--shadow-soft);
+  }
+
+  .shadow-glow {
+    box-shadow: var(--shadow-glow);
+  }
+
+  .glass {
+    @apply backdrop-blur-md bg-card/80;
+  }
+
+  .text-gradient {
+    @apply bg-clip-text text-transparent;
+    background: var(--gradient-nature);
+  }
+}
+
+/* ReactFlow custom styles */
+.react-flow__node {
+  @apply transition-shadow duration-200;
+}
+
+.react-flow__node:hover {
+  @apply shadow-lg;
+}
+
+.react-flow__edge-path {
+  stroke-width: 2;
+}
+
+.react-flow__connection-line {
+  stroke-width: 2;
+}
+
+/* Scrollbar styling */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  @apply bg-muted/50 rounded-full;
+}
+
+::-webkit-scrollbar-thumb {
+  @apply bg-muted-foreground/30 rounded-full hover:bg-muted-foreground/50 transition-colors;
+}
+
+/* Custom animations */
+@keyframes float {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
+}
+
+@keyframes pulse-glow {
+  0%, 100% {
+    box-shadow: 0 0 20px hsl(var(--primary) / 0.3);
+  }
+  50% {
+    box-shadow: 0 0 40px hsl(var(--primary) / 0.5);
+  }
+}
+
+@keyframes grow {
+  0% {
+    transform: scale(0.95);
+    opacity: 0;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+.animate-float {
+  animation: float 4s ease-in-out infinite;
+}
+
+.animate-pulse-glow {
+  animation: pulse-glow 2s ease-in-out infinite;
+}
+
+.animate-grow {
+  animation: grow 0.3s ease-out;
 }
