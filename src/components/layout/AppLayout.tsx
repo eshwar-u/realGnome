@@ -51,7 +51,7 @@ export function AppLayout() {
                 className="overflow-hidden"
               >
                 <h1 className="font-display font-bold text-xl text-sidebar-foreground whitespace-nowrap">
-                  GrowWise
+                  GreenThumb
                 </h1>
                 <p className="text-xs text-sidebar-foreground/60 whitespace-nowrap">
                   Smart Garden Manager
@@ -139,7 +139,7 @@ export function AppLayout() {
             <Sprout className="w-5 h-5 text-sidebar-primary-foreground" />
           </div>
           <h1 className="font-display font-bold text-lg text-sidebar-foreground">
-            GrowWise
+            GreenThumb
           </h1>
         </div>
         <div className="flex items-center gap-2">
