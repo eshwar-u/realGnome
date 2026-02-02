@@ -15,6 +15,7 @@ import {
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Chatbot } from "@/components/chat/Chatbot";
+import { WeatherCalendar } from "@/components/weather/WeatherCalendar";
 
 const navItems = [
   { to: "/", icon: LayoutDashboard, label: "Dashboard" },
@@ -96,6 +97,11 @@ export function AppLayout() {
             );
           })}
         </nav>
+
+        {/* Weather Calendar */}
+        <div className="px-3 py-2 flex-shrink-0">
+          <WeatherCalendar collapsed={!sidebarOpen} />
+        </div>
 
         {/* Collapse Button */}
         <button
