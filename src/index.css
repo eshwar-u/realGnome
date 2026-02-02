@@ -6,6 +6,9 @@
 @import url("https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700;1,400;1,700&display=swap");
 @import url("https://fonts.googleapis.com/css2?family=Work+Sans:wght@400;500;600;700&display=swap");
 @import url("https://fonts.googleapis.com/css2?family=Inconsolata:wght@400;700&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Inter&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Lora&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Space+Mono&display=swap");
 
 @tailwind base;
 @tailwind components;
@@ -29,7 +32,7 @@
 
     /* Earth tone */
     --secondary: 248 0.7% 96.8%;
-    --secondary-foreground: 266 4% 20.8%;
+    --secondary-foreground: 210 40% 98.0392%;
 
     /* Muted sage */
     --muted: 248 0.7% 96.8%;
