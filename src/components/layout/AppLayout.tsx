@@ -11,15 +11,16 @@ import {
   Sprout,
   Menu,
   LogIn,
+  CalendarDays,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Chatbot } from "@/components/chat/Chatbot";
-import { WeatherCalendar } from "@/components/weather/WeatherCalendar";
 
 const navItems = [
   { to: "/", icon: LayoutDashboard, label: "Dashboard" },
   { to: "/garden", icon: Leaf, label: "Garden Builder" },
+  { to: "/calendar", icon: CalendarDays, label: "Calendar" },
   { to: "/goals", icon: Target, label: "Goals" },
   { to: "/login", icon: LogIn, label: "Login" },
 ];
@@ -97,11 +98,6 @@ export function AppLayout() {
             );
           })}
         </nav>
-
-        {/* Weather Calendar */}
-        <div className="px-3 py-2 flex-shrink-0">
-          <WeatherCalendar collapsed={!sidebarOpen} />
-        </div>
 
         {/* Collapse Button */}
         <button
