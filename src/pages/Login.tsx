@@ -126,7 +126,7 @@ export default function Login() {
             <CardDescription>
               {isSignUp
                 ? "Start managing your smart garden"
-                : "Sign in to your GreenThumb account"}
+                : "Sign in to your GnomeAI account"}
             </CardDescription>
           </CardHeader>
           
