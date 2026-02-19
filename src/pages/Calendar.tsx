@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, isToday } from "date-fns";
+import { useGoals } from "@/contexts/GoalsContext";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Sun,
@@ -17,6 +18,7 @@ import {
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Target, CheckCircle2, Circle } from "lucide-react";
 
 interface WeatherData {
   date: Date;
@@ -99,7 +101,8 @@ const getWeatherColor = (code: number): string => {
   return "text-muted-foreground";
 };
 
-export default function Calendar() {
+export default function CalendarPage() {
+  const { goals, toggleComplete } = useGoals();
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [weatherData, setWeatherData] = useState<WeatherData[]>([]);
   const [location, setLocation] = useState<Location | null>(null);
@@ -194,6 +197,13 @@ export default function Calendar() {
 
   const selectedWeather = selectedDay ? getWeatherForDay(selectedDay) : null;
   const todayWeather = weatherData.find((w) => isToday(w.date));
+
+  const getGoalsForDay = (date: Date) => {
+    const dateStr = format(date, "yyyy-MM-dd");
+    return goals.filter((g) => g.dueDate === dateStr);
+  };
+
+  const selectedDayGoals = selectedDay ? getGoalsForDay(selectedDay) : [];
 
   return (
     <div className="p-6 max-w-6xl mx-auto space-y-6">
@@ -292,6 +302,7 @@ export default function Calendar() {
                     const WeatherIcon = weather ? getWeatherIcon(weather.weatherCode) : null;
                     const today = isToday(day);
                     const isSelected = selectedDay && isSameDay(day, selectedDay);
+                    const dayGoals = getGoalsForDay(day);
 
                     return (
                       <motion.button
@@ -319,6 +330,9 @@ export default function Calendar() {
                         )}
                         {weather && (
                           <span className="text-xs text-muted-foreground">{weather.tempMax}°</span>
+                        )}
+                        {dayGoals.length > 0 && (
+                          <div className="absolute top-1 right-1 w-2 h-2 rounded-full bg-sun" />
                         )}
                       </motion.button>
                     );
@@ -373,10 +387,64 @@ export default function Calendar() {
                       : "Great conditions for general garden maintenance!"}
                   </p>
                 </div>
+
+                {/* Goals due this day */}
+                {selectedDayGoals.length > 0 && (
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-2">
+                      <Target className="w-4 h-4 text-sun" />
+                      <p className="text-sm font-medium">Goals Due</p>
+                    </div>
+                    {selectedDayGoals.map((goal) => (
+                      <button
+                        key={goal.id}
+                        onClick={() => toggleComplete(goal.id)}
+                        className="w-full flex items-center gap-2 p-2 rounded-lg bg-accent/50 hover:bg-accent transition-colors text-left"
+                      >
+                        {goal.completed ? (
+                          <CheckCircle2 className="w-4 h-4 text-leaf shrink-0" />
+                        ) : (
+                          <Circle className="w-4 h-4 text-muted-foreground shrink-0" />
+                        )}
+                        <span className={cn("text-sm", goal.completed && "line-through text-muted-foreground")}>
+                          {goal.title}
+                        </span>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            ) : selectedDay ? (
+              <div className="space-y-4">
+                <p className="text-muted-foreground text-sm">No weather data available for this day.</p>
+                {selectedDayGoals.length > 0 && (
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-2">
+                      <Target className="w-4 h-4 text-sun" />
+                      <p className="text-sm font-medium">Goals Due</p>
+                    </div>
+                    {selectedDayGoals.map((goal) => (
+                      <button
+                        key={goal.id}
+                        onClick={() => toggleComplete(goal.id)}
+                        className="w-full flex items-center gap-2 p-2 rounded-lg bg-accent/50 hover:bg-accent transition-colors text-left"
+                      >
+                        {goal.completed ? (
+                          <CheckCircle2 className="w-4 h-4 text-leaf shrink-0" />
+                        ) : (
+                          <Circle className="w-4 h-4 text-muted-foreground shrink-0" />
+                        )}
+                        <span className={cn("text-sm", goal.completed && "line-through text-muted-foreground")}>
+                          {goal.title}
+                        </span>
+                      </button>
+                    ))}
+                  </div>
+                )}
               </div>
             ) : (
               <p className="text-muted-foreground text-center py-8">
-                Click on a day to see detailed weather information
+                Click on a day to see detailed weather and goals
               </p>
             )}
           </CardContent>
