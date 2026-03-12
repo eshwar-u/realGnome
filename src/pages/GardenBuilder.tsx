@@ -1,4 +1,5 @@
-import { useState, useCallback, useMemo } from "react";
+import { useState, useCallback, useMemo, useEffect } from "react";
+import { useGardenLayout } from "@/hooks/api/useGardenLayout";
 import { motion } from "framer-motion";
 import {
   ReactFlow,
@@ -97,8 +98,14 @@ const initialEdges: Edge[] = [
 ];
 
 export default function GardenBuilder() {
-  const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
-  const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
+  const { data: savedLayout, saveLayout } = useGardenLayout();
+
+  const [nodes, setNodes, onNodesChange] = useNodesState(
+    (savedLayout?.nodes as Node[]) ?? initialNodes
+  );
+  const [edges, setEdges, onEdgesChange] = useEdgesState(
+    (savedLayout?.edges as Edge[]) ?? initialEdges
+  );
   const [selectedNode, setSelectedNode] = useState<Node | null>(null);
 
   const onConnect = useCallback(
@@ -196,7 +203,17 @@ export default function GardenBuilder() {
               <Download className="w-4 h-4" />
               Export
             </Button>
-            <Button variant="nature" size="sm" className="gap-2">
+            <Button
+              variant="nature"
+              size="sm"
+              className="gap-2"
+              onClick={() =>
+                saveLayout.mutate({
+                  nodes: nodes.map((n) => ({ id: n.id, type: n.type as "plant" | "sensor" | "group", position: n.position, data: n.data as any })),
+                  edges: edges.map((e) => ({ id: e.id, source: e.source, target: e.target, type: e.type, animated: e.animated, style: e.style as any })),
+                })
+              }
+            >
               <Save className="w-4 h-4" />
               Save Layout
             </Button>
