@@ -49,7 +49,7 @@ export function Chatbot({ open, onClose }: ChatbotProps) {
     if (!input.trim()) return;
 
     const userMessage: Message = {
-      id: Date.now().toString(),
+      id: Date.now().toString(), //ID may not be needed
       role: "user",
       content: input.trim(),
       timestamp: new Date(),
