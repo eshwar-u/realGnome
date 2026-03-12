@@ -209,7 +209,7 @@ export default function GardenBuilder() {
               className="gap-2"
               onClick={() =>
                 saveLayout.mutate({
-                  nodes: nodes.map((n) => ({ id: n.id, type: n.type as string, position: n.position, data: n.data as any })),
+                  nodes: nodes.map((n) => ({ id: n.id, type: n.type as "plant" | "sensor" | "group", position: n.position, data: n.data as any })),
                   edges: edges.map((e) => ({ id: e.id, source: e.source, target: e.target, type: e.type, animated: e.animated, style: e.style as any })),
                 })
               }
