@@ -10,6 +10,8 @@ import {
   ChevronRight,
   Sprout,
   Menu,
+  LogIn,
+  CalendarDays,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -18,7 +20,9 @@ import { Chatbot } from "@/components/chat/Chatbot";
 const navItems = [
   { to: "/", icon: LayoutDashboard, label: "Dashboard" },
   { to: "/garden", icon: Leaf, label: "Garden Builder" },
+  { to: "/calendar", icon: CalendarDays, label: "Calendar" },
   { to: "/goals", icon: Target, label: "Goals" },
+  { to: "/login", icon: LogIn, label: "Login" },
 ];
 
 export function AppLayout() {
