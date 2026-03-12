@@ -1,4 +1,5 @@
-import { useState, useCallback, useMemo } from "react";
+import { useState, useCallback, useMemo, useEffect } from "react";
+import { useGardenLayout } from "@/hooks/api/useGardenLayout";
 import { motion } from "framer-motion";
 import {
   ReactFlow,
