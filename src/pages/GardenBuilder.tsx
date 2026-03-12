@@ -97,8 +97,14 @@ const initialEdges: Edge[] = [
 ];
 
 export default function GardenBuilder() {
-  const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
-  const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
+  const { data: savedLayout, saveLayout } = useGardenLayout();
+
+  const [nodes, setNodes, onNodesChange] = useNodesState(
+    (savedLayout?.nodes as Node[]) ?? initialNodes
+  );
+  const [edges, setEdges, onEdgesChange] = useEdgesState(
+    (savedLayout?.edges as Edge[]) ?? initialEdges
+  );
   const [selectedNode, setSelectedNode] = useState<Node | null>(null);
 
   const onConnect = useCallback(
