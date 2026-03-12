@@ -203,7 +203,17 @@ export default function GardenBuilder() {
               <Download className="w-4 h-4" />
               Export
             </Button>
-            <Button variant="nature" size="sm" className="gap-2">
+            <Button
+              variant="nature"
+              size="sm"
+              className="gap-2"
+              onClick={() =>
+                saveLayout.mutate({
+                  nodes: nodes.map((n) => ({ id: n.id, type: n.type as string, position: n.position, data: n.data as any })),
+                  edges: edges.map((e) => ({ id: e.id, source: e.source, target: e.target, type: e.type, animated: e.animated, style: e.style as any })),
+                })
+              }
+            >
               <Save className="w-4 h-4" />
               Save Layout
             </Button>
