@@ -21,6 +21,8 @@ import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
 import { useGoals, GoalType } from "@/contexts/GoalsContext";
+import { AddGoalModal } from "@/components/goals/AddGoalModal";
+import type { GoalItem } from "@/hooks/api/useGoalsApi";
 
 const containerVariants = {
   hidden: { opacity: 0 },
@@ -35,7 +37,7 @@ const itemVariants = {
 export default function Goals() {
   const { goals, toggleComplete, updateGoalDueDate, addGoal, removeGoal } = useGoals();
   const [activeTab, setActiveTab] = useState<GoalType>("long-term");
-
+  const [modalOpen, setModalOpen] = useState(false);
   const filteredGoals = goals.filter((g) => g.type === activeTab);
 
   const stats = {
@@ -69,7 +71,7 @@ export default function Goals() {
             <h1 className="text-3xl md:text-4xl font-display font-bold text-foreground">Garden Goals</h1>
             <p className="text-muted-foreground mt-1">Track your vision, milestones, and plant care tasks</p>
           </div>
-          <Button variant="nature" className="gap-2">
+          <Button variant="nature" className="gap-2" onClick={() => setModalOpen(true)}>
             <Plus className="w-4 h-4" />
             Add Goal
           </Button>
@@ -232,7 +234,7 @@ export default function Goals() {
                 </div>
                 <h3 className="font-display font-semibold text-foreground mb-2">No goals yet</h3>
                 <p className="text-muted-foreground mb-4">Add your first goal to start tracking your garden progress</p>
-                <Button variant="nature">
+                <Button variant="nature" onClick={() => setModalOpen(true)}>
                   <Plus className="w-4 h-4 mr-2" />
                   Add Goal
                 </Button>
@@ -241,6 +243,11 @@ export default function Goals() {
           )}
         </motion.div>
       </motion.div>
+      <AddGoalModal
+        open={modalOpen}
+        onClose={() => setModalOpen(false)}
+        onSubmit={addGoal}
+        />
     </div>
   );
 }
