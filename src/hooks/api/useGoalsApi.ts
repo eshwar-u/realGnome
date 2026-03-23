@@ -19,7 +19,7 @@ function decodePlantDescription(combined: string): { plant_title: string; descri
 
 // ── Request body shapes ──────────────────────────────────
 
-interface GoalItem {
+export interface GoalItem {
   goal_type: "long-term" | "short-term" | "plant";
   description: string;
   plant_title?: string;

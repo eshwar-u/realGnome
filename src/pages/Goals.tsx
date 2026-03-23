@@ -33,7 +33,7 @@ const itemVariants = {
 };
 
 export default function Goals() {
-  const { goals, toggleComplete, updateGoalDueDate } = useGoals();
+  const { goals, toggleComplete, updateGoalDueDate, addGoal, removeGoal } = useGoals();
   const [activeTab, setActiveTab] = useState<GoalType>("long-term");
 
   const filteredGoals = goals.filter((g) => g.type === activeTab);
@@ -168,7 +168,7 @@ export default function Goals() {
                             <Button variant="ghost" size="icon" className="h-8 w-8">
                               <Edit2 className="w-4 h-4" />
                             </Button>
-                            <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive">
+                            <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => removeGoal(goal.id)}>
                               <Trash2 className="w-4 h-4" />
                             </Button>
                           </div>

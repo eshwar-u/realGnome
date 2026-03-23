@@ -1,6 +1,10 @@
 import { createContext, useContext, useState, useEffect, ReactNode, useCallback } from "react";
 import { useGoalsApi } from "@/hooks/api/useGoalsApi";
 import type { GoalPayload } from "@/types/api";
+import type { GoalItem } from "@/hooks/api/useGoalsApi";
+
+const userID = Number(localStorage.getItem("user_id") ?? 0);
+const { data: apiGoals, isSuccess, createGoals, removeGoals } = useGoalsApi(userID);
 
 export type GoalType = "long-term" | "short-term" | "plant";
 
@@ -15,7 +19,6 @@ export interface Goal {
   plant?: string;
 }
 
-// Fallback data when API is unavailable
 const fallbackGoals: Goal[] = [
   { id: "1", title: "Grow 100% organic vegetables", description: "Transition to completely organic growing methods with natural pesticides and fertilizers", type: "long-term", progress: 45, completed: false },
   { id: "2", title: "Improve soil nutrient density", description: "Add compost and natural amendments to increase nutrient content by 30%", type: "long-term", progress: 60, completed: false },
@@ -27,6 +30,8 @@ const fallbackGoals: Goal[] = [
 
 interface GoalsContextType {
   goals: Goal[];
+  addGoal: (goal: GoalItem) => void;
+  removeGoal: (id: string) => void;
   setGoals: React.Dispatch<React.SetStateAction<Goal[]>>;
   toggleComplete: (id: string) => void;
   updateGoalDueDate: (id: string, date: string | undefined) => void;
@@ -37,10 +42,10 @@ const GoalsContext = createContext<GoalsContextType | undefined>(undefined);
 
 export function GoalsProvider({ children }: { children: ReactNode }) {
   const [goals, setGoals] = useState<Goal[]>(fallbackGoals);
-  const { data: apiGoals, isSuccess, updateGoal } = useGoalsApi();
+  const userID = Number(localStorage.getItem("user_id") ?? 0);
+  const { data: apiGoals, isSuccess } = useGoalsApi(userID);
   const [isApiConnected, setIsApiConnected] = useState(false);
 
-  // Sync from API when available
   useEffect(() => {
     if (isSuccess && apiGoals) {
       setGoals(apiGoals as Goal[]);
@@ -57,29 +62,38 @@ export function GoalsProvider({ children }: { children: ReactNode }) {
             : g
         )
       );
-      // Persist to API if connected
-      if (isApiConnected) {
-        const goal = goals.find((g) => g.id === id);
-        if (goal) {
-          updateGoal.mutate({ id, completed: !goal.completed, progress: goal.completed ? goal.progress : 100 });
-        }
-      }
     },
-    [isApiConnected, goals, updateGoal]
+    []
   );
 
   const updateGoalDueDate = useCallback(
     (id: string, date: string | undefined) => {
       setGoals((prev) => prev.map((g) => (g.id === id ? { ...g, dueDate: date } : g)));
-      if (isApiConnected) {
-        updateGoal.mutate({ id, dueDate: date });
-      }
     },
-    [isApiConnected, updateGoal]
+    []
   );
 
+  const addGoal = useCallback(
+  (goal: GoalItem) => {
+    if (isApiConnected) {
+      createGoals.mutate([goal]);
+    }
+  },
+  [isApiConnected, createGoals]
+);
+
+const removeGoal = useCallback(
+  (id: string) => {
+    setGoals((prev) => prev.filter((g) => g.id !== id));
+    if (isApiConnected) {
+      removeGoals.mutate([Number(id)]);
+    }
+  },
+  [isApiConnected, removeGoals]
+);
+
   return (
-    <GoalsContext.Provider value={{ goals, setGoals, toggleComplete, updateGoalDueDate, isApiConnected }}>
+    <GoalsContext.Provider value={{ goals, setGoals, toggleComplete, updateGoalDueDate, addGoal, removeGoal, isApiConnected }}>
       {children}
     </GoalsContext.Provider>
   );
@@ -90,3 +104,4 @@ export function useGoals() {
   if (!context) throw new Error("useGoals must be used within GoalsProvider");
   return context;
 }
+
