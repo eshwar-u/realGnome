@@ -42,34 +42,40 @@ export default function Login() {
     setIsLoading(true);
 
     try {
-      // TODO: Replace with your actual API endpoint
-      const endpoint = isSignUp ? "/api/auth/signup" : "/api/auth/login";
-      
-      const response = await fetch(endpoint, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          username: formData.username,
-          password: formData.password,
-        }),
-      });
+      const response = await fetch("https://hotrs7nexh.execute-api.us-east-2.amazonaws.com/test/user-auth", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(
+        isSignUp
+          ? {
+              eventType: "signup",
+              email: formData.username,
+              password: formData.password,
+              userFname: "",
+              userLname: "",
+            }
+          : {
+              eventType: "login",
+              email: formData.username,
+              password: formData.password,
+            }
+      ),
+    });
 
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.message || "Authentication failed");
-      }
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.message || "Authentication failed");
+    }
 
-      const data = await response.json();
-      
-      // Store token if returned by your API
-      if (data.token) {
-        localStorage.setItem("auth_token", data.token);
-      }
+    const data = await response.json();
+    const parsedBody = JSON.parse(data.body);
 
-      toast.success(isSignUp ? "Account created successfully!" : "Welcome back!");
-      navigate("/");
+    if (parsedBody.userID) {
+      localStorage.setItem("user_id", String(parsedBody.userID));
+    }
+
+    toast.success(isSignUp ? "Account created successfully!" : "Welcome back!");
+    navigate("/");
     } catch (error) {
       console.error("Auth error:", error);
       toast.error(error instanceof Error ? error.message : "Authentication failed");
@@ -111,12 +117,12 @@ export default function Login() {
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="username">Username</Label>
+                <Label htmlFor="username">Email</Label>
                 <Input
                   id="username"
                   name="username"
-                  type="text"
-                  placeholder="Enter your username"
+                  type="email"
+                  placeholder="Enter your email"
                   value={formData.username}
                   onChange={handleInputChange}
                   disabled={isLoading}
