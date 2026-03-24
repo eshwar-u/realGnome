@@ -22,7 +22,6 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { cn } from "@/lib/utils";
 import { useGoals, GoalType } from "@/contexts/GoalsContext";
 import { AddGoalModal } from "@/components/goals/AddGoalModal";
-import type { GoalItem } from "@/hooks/api/useGoalsApi";
 
 const containerVariants = {
   hidden: { opacity: 0 },
@@ -36,8 +35,8 @@ const itemVariants = {
 
 export default function Goals() {
   const { goals, toggleComplete, updateGoalDueDate, addGoal, removeGoal } = useGoals();
-  const [activeTab, setActiveTab] = useState<GoalType>("long-term");
   const [modalOpen, setModalOpen] = useState(false);
+  const [activeTab, setActiveTab] = useState<GoalType>("long-term");
   const filteredGoals = goals.filter((g) => g.type === activeTab);
 
   const stats = {

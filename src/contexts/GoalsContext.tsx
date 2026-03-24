@@ -45,9 +45,9 @@ export function GoalsProvider({ children }: { children: ReactNode }) {
   const [isApiConnected, setIsApiConnected] = useState(false);
 
   useEffect(() => {
-    if (isSuccess && apiGoals) {
-      setGoals(apiGoals as Goal[]);
+    if (isSuccess && apiGoals !== undefined) {
       setIsApiConnected(true);
+      setGoals(apiGoals as Goal[]);
     }
   }, [isSuccess, apiGoals]);
 
