@@ -3,8 +3,6 @@ import { useGoalsApi } from "@/hooks/api/useGoalsApi";
 import type { GoalPayload } from "@/types/api";
 import type { GoalItem } from "@/hooks/api/useGoalsApi";
 
-const userID = Number(localStorage.getItem("user_id") ?? 0);
-const { data: apiGoals, isSuccess, createGoals, removeGoals } = useGoalsApi(userID);
 
 export type GoalType = "long-term" | "short-term" | "plant";
 
@@ -43,7 +41,7 @@ const GoalsContext = createContext<GoalsContextType | undefined>(undefined);
 export function GoalsProvider({ children }: { children: ReactNode }) {
   const [goals, setGoals] = useState<Goal[]>(fallbackGoals);
   const userID = Number(localStorage.getItem("user_id") ?? 0);
-  const { data: apiGoals, isSuccess } = useGoalsApi(userID);
+  const { data: apiGoals, isSuccess, createGoals, removeGoals } = useGoalsApi(userID);
   const [isApiConnected, setIsApiConnected] = useState(false);
 
   useEffect(() => {
