@@ -39,59 +39,40 @@ interface GoalsContextType {
 const GoalsContext = createContext<GoalsContextType | undefined>(undefined);
 
 export function GoalsProvider({ children }: { children: ReactNode }) {
-  const [goals, setGoals] = useState<Goal[]>(fallbackGoals);
   const userID = Number(localStorage.getItem("user_id") ?? 0);
   const { data: apiGoals, isSuccess, createGoals, removeGoals } = useGoalsApi(userID);
-  const [isApiConnected, setIsApiConnected] = useState(false);
 
-  useEffect(() => {
-    if (isSuccess && apiGoals !== undefined) {
-      setIsApiConnected(true);
-      setGoals(apiGoals as Goal[]);
-    }
-  }, [isSuccess, apiGoals]);
+  const goals: Goal[] = (isSuccess && apiGoals) ? apiGoals as Goal[] : [];
+  const isApiConnected = isSuccess;
 
   const toggleComplete = useCallback(
     (id: string) => {
-      setGoals((prev) =>
-        prev.map((g) =>
-          g.id === id
-            ? { ...g, completed: !g.completed, progress: g.completed ? g.progress : 100 }
-            : g
-        )
-      );
-    },
-    []
+      // local only for now
+    }, []
   );
 
   const updateGoalDueDate = useCallback(
     (id: string, date: string | undefined) => {
-      setGoals((prev) => prev.map((g) => (g.id === id ? { ...g, dueDate: date } : g)));
-    },
-    []
+      // local only for now
+    }, []
   );
 
   const addGoal = useCallback(
-  (goal: GoalItem) => {
-    if (isApiConnected) {
+    (goal: GoalItem) => {
       createGoals.mutate([goal]);
-    }
-  },
-  [isApiConnected, createGoals]
-);
+    },
+    [createGoals]
+  );
 
-const removeGoal = useCallback(
-  (id: string) => {
-    setGoals((prev) => prev.filter((g) => g.id !== id));
-    if (isApiConnected) {
+  const removeGoal = useCallback(
+    (id: string) => {
       removeGoals.mutate([Number(id)]);
-    }
-  },
-  [isApiConnected, removeGoals]
-);
+    },
+    [removeGoals]
+  );
 
   return (
-    <GoalsContext.Provider value={{ goals, setGoals, toggleComplete, updateGoalDueDate, addGoal, removeGoal, isApiConnected }}>
+    <GoalsContext.Provider value={{ goals, setGoals: () => {}, toggleComplete, updateGoalDueDate, addGoal, removeGoal, isApiConnected }}>
       {children}
     </GoalsContext.Provider>
   );

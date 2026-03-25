@@ -49,18 +49,20 @@ export function useGoalsApi(userID: number) {
   const query = useQuery<GoalPayload[]>({
     queryKey: [...QUERY_KEY, userID],
     queryFn: async () => {
-      const raw = await apiFetch<Record<string, {
+      const raw = await apiFetch<{ statusCode: number; body: string }>(API_URL, {
+        method: "POST",
+        body: JSON.stringify({ api_type: "get_user", userID } satisfies GetUserGoalsPayload),
+      });
+
+      const goals = JSON.parse(raw.body) as Record<string, {
         goal_id: number;
         userID: number;
         goal_type: "long-term" | "short-term" | "plant";
         description: string;
         status: string | null;
-      }>>(API_URL, {
-        method: "POST",
-        body: JSON.stringify({ api_type: "get_user", userID } satisfies GetUserGoalsPayload),
-      });
+      }>;
 
-      return Object.values(raw).map((g) => {
+      return Object.values(goals).map((g) => {
         const { plant_title, description } = g.goal_type === "plant"
           ? decodePlantDescription(g.description)
           : { plant_title: undefined, description: g.description };
