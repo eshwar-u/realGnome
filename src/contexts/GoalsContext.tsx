@@ -40,15 +40,16 @@ const GoalsContext = createContext<GoalsContextType | undefined>(undefined);
 
 export function GoalsProvider({ children }: { children: ReactNode }) {
   const userID = Number(localStorage.getItem("user_id") ?? 0);
-  const { data: apiGoals, isSuccess, createGoals, removeGoals } = useGoalsApi(userID);
+  const { data: apiGoals, isSuccess, createGoals, removeGoals, archiveGoals } = useGoalsApi(userID);
 
   const goals: Goal[] = (isSuccess && apiGoals) ? apiGoals as Goal[] : [];
   const isApiConnected = isSuccess;
 
   const toggleComplete = useCallback(
     (id: string) => {
-      // local only for now
-    }, []
+      archiveGoals.mutate([Number(id)]);
+    },
+    [archiveGoals]
   );
 
   const updateGoalDueDate = useCallback(

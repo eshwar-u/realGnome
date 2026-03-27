@@ -36,6 +36,11 @@ interface RemoveGoalsPayload {
   goal_ids: number[];
 }
 
+interface ArchiveGoalsPayload {
+  api_type: "archive";
+  goal_ids: number[];
+}
+
 interface GetUserGoalsPayload {
   api_type: "get_user";
   userID: number;
@@ -82,13 +87,15 @@ export function useGoalsApi(userID: number) {
     retry: false,
   });  // <-- closes useQuery
 
+  const queryKey = [...QUERY_KEY, userID];
+
   const createGoals = useMutation({
     mutationFn: (goal_list: GoalItem[]) =>
       apiFetch<{ message: string }>(API_URL, {
         method: "POST",
         body: JSON.stringify({ api_type: "add", userID, goal_list } satisfies AddGoalsPayload),
       }),
-    onSuccess: () => qc.invalidateQueries({ queryKey: [...QUERY_KEY, userID] }),
+    onSuccess: () => qc.invalidateQueries({ queryKey }),
   });
 
   const removeGoals = useMutation({
@@ -97,8 +104,43 @@ export function useGoalsApi(userID: number) {
         method: "POST",
         body: JSON.stringify({ api_type: "remove", goal_ids } satisfies RemoveGoalsPayload),
       }),
-    onSuccess: () => qc.invalidateQueries({ queryKey: [...QUERY_KEY, userID] }),
+    onMutate: async (goal_ids) => {
+      await qc.cancelQueries({ queryKey });
+      const prev = qc.getQueryData<GoalPayload[]>(queryKey);
+      qc.setQueryData<GoalPayload[]>(queryKey, (old) =>
+        old?.filter((g) => !goal_ids.includes(Number(g.id))) ?? []
+      );
+      return { prev };
+    },
+    onError: (_err, _vars, ctx) => {
+      if (ctx?.prev) qc.setQueryData(queryKey, ctx.prev);
+    },
+    onSettled: () => qc.invalidateQueries({ queryKey }),
   });
 
-  return { ...query, createGoals, removeGoals };
+  const archiveGoals = useMutation({
+    mutationFn: (goal_ids: number[]) =>
+      apiFetch<{ message: string }>(API_URL, {
+        method: "POST",
+        body: JSON.stringify({ api_type: "archive", goal_ids } satisfies ArchiveGoalsPayload),
+      }),
+    onMutate: async (goal_ids) => {
+      await qc.cancelQueries({ queryKey });
+      const prev = qc.getQueryData<GoalPayload[]>(queryKey);
+      qc.setQueryData<GoalPayload[]>(queryKey, (old) =>
+        old?.map((g) =>
+          goal_ids.includes(Number(g.id))
+            ? { ...g, completed: true, progress: 100 }
+            : g
+        ) ?? []
+      );
+      return { prev };
+    },
+    onError: (_err, _vars, ctx) => {
+      if (ctx?.prev) qc.setQueryData(queryKey, ctx.prev);
+    },
+    onSettled: () => qc.invalidateQueries({ queryKey }),
+  });
+
+  return { ...query, createGoals, removeGoals, archiveGoals };
 }  // <-- closes useGoalsApi

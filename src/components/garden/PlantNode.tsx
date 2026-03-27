@@ -8,7 +8,7 @@ interface PlantNodeData {
   health: number;
 }
 
-export const PlantNode = memo(({ data }: NodeProps) => {
+export const PlantNode = memo(({ data, selected }: NodeProps) => {
   const nodeData = data as unknown as PlantNodeData;
   const healthColor =
     nodeData.health >= 80
@@ -18,10 +18,16 @@ export const PlantNode = memo(({ data }: NodeProps) => {
       : "bg-warning";
 
   return (
-    <div className="bg-card border-2 border-leaf/50 rounded-xl p-4 min-w-[140px] shadow-soft hover:shadow-lg transition-shadow">
+    <div
+      className={`bg-card border-2 rounded-xl p-4 min-w-[140px] shadow-soft hover:shadow-lg transition-shadow ${
+        selected ? "border-leaf" : "border-leaf/50"
+      }`}
+    >
+      {/* Receives connection from a group (top) */}
       <Handle
         type="target"
         position={Position.Top}
+        id="group-in"
         className="w-3 h-3 !bg-leaf border-2 border-card"
       />
 
@@ -48,10 +54,12 @@ export const PlantNode = memo(({ data }: NodeProps) => {
         </div>
       </div>
 
+      {/* Emits connection to a sensor (right side) */}
       <Handle
         type="source"
-        position={Position.Bottom}
-        className="w-3 h-3 !bg-leaf border-2 border-card"
+        position={Position.Right}
+        id="sensor-out"
+        className="w-3 h-3 !bg-sky border-2 border-card"
       />
     </div>
   );
