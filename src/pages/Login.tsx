@@ -13,13 +13,17 @@ export default function Login() {
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [isSignUp, setIsSignUp] = useState(false);
+  const [emailError, setEmailError] = useState("");
   const [formData, setFormData] = useState({
     username: "",
     password: "",
     confirmPassword: "",
+    firstName: "",
+    lastName: "",
   });
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.name === "username") setEmailError("");
     setFormData((prev) => ({
       ...prev,
       [e.target.name]: e.target.value,
@@ -43,39 +47,43 @@ export default function Login() {
 
     try {
       const response = await fetch("https://hotrs7nexh.execute-api.us-east-2.amazonaws.com/test/user-auth", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(
-        isSignUp
-          ? {
-              eventType: "signup",
-              email: formData.username,
-              password: formData.password,
-              userFname: "",
-              userLname: "",
-            }
-          : {
-              eventType: "login",
-              email: formData.username,
-              password: formData.password,
-            }
-      ),
-    });
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(
+          isSignUp
+            ? {
+                eventType: "signup",
+                email: formData.username,
+                password: formData.password,
+                userFname: formData.firstName,
+                userLname: formData.lastName,
+              }
+            : {
+                eventType: "login",
+                email: formData.username,
+                password: formData.password,
+              }
+        ),
+      });
 
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.message || "Authentication failed");
-    }
+      const data = await response.json();
+      const parsedBody = JSON.parse(data.body);
 
-    const data = await response.json();
-    const parsedBody = JSON.parse(data.body);
+      if (data.statusCode !== 200) {
+        if (data.statusCode === 400 && parsedBody.error === "Email already exists!") {
+          setEmailError("An account with this email already exists. Try signing in instead.");
+        } else {
+          throw new Error(parsedBody.error || "Authentication failed");
+        }
+        return;
+      }
 
-    if (parsedBody.userID) {
-      localStorage.setItem("user_id", String(parsedBody.userID));
-    }
+      if (parsedBody.userID) {
+        localStorage.setItem("user_id", String(parsedBody.userID));
+      }
 
-    toast.success(isSignUp ? "Account created successfully!" : "Welcome back!");
-    navigate("/");
+      toast.success(isSignUp ? "Account created successfully!" : "Welcome back!");
+      navigate("/");
     } catch (error) {
       console.error("Auth error:", error);
       toast.error(error instanceof Error ? error.message : "Authentication failed");
@@ -116,6 +124,44 @@ export default function Login() {
           
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-4">
+              {isSignUp && (
+                <motion.div
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: "auto" }}
+                  exit={{ opacity: 0, height: 0 }}
+                  className="flex gap-3"
+                >
+                  <div className="space-y-2 flex-1">
+                    <Label htmlFor="firstName">First Name</Label>
+                    <Input
+                      id="firstName"
+                      name="firstName"
+                      type="text"
+                      placeholder="First name"
+                      value={formData.firstName}
+                      onChange={handleInputChange}
+                      disabled={isLoading}
+                      className="h-11"
+                      autoComplete="given-name"
+                    />
+                  </div>
+                  <div className="space-y-2 flex-1">
+                    <Label htmlFor="lastName">Last Name</Label>
+                    <Input
+                      id="lastName"
+                      name="lastName"
+                      type="text"
+                      placeholder="Last name"
+                      value={formData.lastName}
+                      onChange={handleInputChange}
+                      disabled={isLoading}
+                      className="h-11"
+                      autoComplete="family-name"
+                    />
+                  </div>
+                </motion.div>
+              )}
+
               <div className="space-y-2">
                 <Label htmlFor="username">Email</Label>
                 <Input
@@ -175,10 +221,17 @@ export default function Login() {
                     value={formData.confirmPassword}
                     onChange={handleInputChange}
                     disabled={isLoading}
-                    className="h-11"
+                    className={`h-11 ${formData.confirmPassword && formData.password !== formData.confirmPassword ? "border-red-500 focus-visible:ring-red-500" : ""}`}
                     autoComplete="new-password"
                   />
+                  {formData.confirmPassword && formData.password !== formData.confirmPassword && (
+                    <p className="text-xs text-red-500">Passwords do not match</p>
+                  )}
                 </motion.div>
+              )}
+
+              {emailError && (
+                <p className="text-sm text-red-500 text-center">{emailError}</p>
               )}
 
               <Button
@@ -214,7 +267,7 @@ export default function Login() {
         </Card>
 
         <p className="text-center text-xs text-muted-foreground mt-4">
-          By continuing, you agree to GreenThumb's Terms of Service and Privacy Policy
+          By continuing, you agree to Gnome's Terms of Service and Privacy Policy
         </p>
       </motion.div>
     </div>
