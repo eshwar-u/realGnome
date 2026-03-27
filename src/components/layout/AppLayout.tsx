@@ -63,7 +63,19 @@ export function AppLayout() {
                 className="overflow-hidden"
               >
                 <h1 className="font-display font-bold text-xl text-sidebar-foreground whitespace-nowrap">
+<<<<<<< HEAD
                   GnomeAI
+=======
+<<<<<<< HEAD
+<<<<<<< HEAD
+                  GnomeAI
+=======
+                  Gnome
+>>>>>>> 5a21039 (update name to Gnome)
+=======
+                  Gnome
+>>>>>>> 3ee1f69 (renamed to gnome)
+>>>>>>> d978443 (next merge)
                 </h1>
                 <p className="text-xs text-sidebar-foreground/60 whitespace-nowrap">
                   Smart Garden Manager
