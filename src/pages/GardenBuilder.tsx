@@ -1,4 +1,4 @@
-import { useState, useCallback, useMemo } from "react";
+import { useState, useCallback, useMemo, useRef } from "react";
 import { useGardenLayout } from "@/hooks/api/useGardenLayout";
 import { motion } from "framer-motion";
 import {
@@ -131,8 +131,9 @@ function GardenBuilderInner() {
   );
   const [pendingNodeType, setPendingNodeType] = useState<NodeType | null>(null);
   const [edgeMenu, setEdgeMenu] = useState<{ edgeId: string; x: number; y: number } | null>(null);
-  const [nodeMenu, setNodeMenu] = useState<{ nodeId: string; x: number; y: number } | null>(null);
+  const [nodeMenu, setNodeMenu] = useState<{ nodeId: string; nodeType: string | undefined; x: number; y: number } | null>(null);
   const [editingNode, setEditingNode] = useState<Node | null>(null);
+  const dragStartPositions = useRef<Record<string, { x: number; y: number }>>({});
 
   /** Structural type check — called during drag for visual handle feedback. */
   const isValidConnection = useCallback(
@@ -249,7 +250,7 @@ function GardenBuilderInner() {
     const canvas = (e.currentTarget as HTMLElement).closest(".react-flow") as HTMLElement;
     if (!canvas) return;
     const rect = canvas.getBoundingClientRect();
-    setNodeMenu({ nodeId: node.id, x: e.clientX - rect.left, y: e.clientY - rect.top });
+    setNodeMenu({ nodeId: node.id, nodeType: node.type, x: e.clientX - rect.left, y: e.clientY - rect.top });
     setEdgeMenu(null);
   }, []);
 
@@ -279,6 +280,55 @@ function GardenBuilderInner() {
     setEdges((eds) => eds.filter((e) => e.source !== nodeId && e.target !== nodeId));
     setNodeMenu(null);
   }, [nodes, edges, setNodes, setEdges]);
+
+  const deleteGroupWithAll = useCallback((groupId: string) => {
+    const toDelete = new Set<string>([groupId]);
+    const queue = [groupId];
+    while (queue.length) {
+      const id = queue.shift()!;
+      edges.forEach((e) => {
+        if (e.source === id && !toDelete.has(e.target)) {
+          toDelete.add(e.target);
+          queue.push(e.target);
+        }
+        if (e.target === id && !toDelete.has(e.source)) {
+          toDelete.add(e.source);
+          queue.push(e.source);
+        }
+      });
+    }
+    setNodes((nds) => nds.filter((n) => !toDelete.has(n.id)));
+    setEdges((eds) => eds.filter((e) => !toDelete.has(e.source) && !toDelete.has(e.target)));
+    setNodeMenu(null);
+  }, [edges, setNodes, setEdges]);
+
+  const onNodeDragStart = useCallback((_e: React.MouseEvent, node: Node) => {
+    if (node.type !== "group") return;
+    dragStartPositions.current = { [node.id]: { ...node.position } };
+    edges.forEach((e) => {
+      const connectedId = e.source === node.id ? e.target : e.target === node.id ? e.source : null;
+      if (connectedId) {
+        const n = nodes.find((n) => n.id === connectedId);
+        if (n) dragStartPositions.current[connectedId] = { ...n.position };
+      }
+    });
+  }, [nodes, edges]);
+
+  const onNodeDrag = useCallback((_e: React.MouseEvent, node: Node) => {
+    if (node.type !== "group") return;
+    const startPos = dragStartPositions.current[node.id];
+    if (!startPos) return;
+    const dx = node.position.x - startPos.x;
+    const dy = node.position.y - startPos.y;
+    const connectedIds = Object.keys(dragStartPositions.current).filter((id) => id !== node.id);
+    setNodes((nds) =>
+      nds.map((n) => {
+        if (!connectedIds.includes(n.id)) return n;
+        const start = dragStartPositions.current[n.id];
+        return { ...n, position: { x: start.x + dx, y: start.y + dy } };
+      })
+    );
+  }, [setNodes]);
 
   const openEditNode = useCallback((nodeId: string) => {
     const node = nodes.find((n) => n.id === nodeId);
@@ -538,6 +588,8 @@ function GardenBuilderInner() {
             onNodeClick={onNodeClick}
             onPaneClick={onPaneClick}
             onEdgeClick={onEdgeClick}
+            onNodeDragStart={onNodeDragStart}
+            onNodeDrag={onNodeDrag}
             isValidConnection={isValidConnection}
             nodeTypes={nodeTypes}
             fitView
@@ -583,6 +635,18 @@ function GardenBuilderInner() {
                   <Trash2 className="w-3.5 h-3.5" />
                   Delete
                 </button>
+                {nodeMenu.nodeType === "group" && (
+                  <>
+                    <div className="w-px h-4 bg-border" />
+                    <button
+                      className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-xs font-medium text-destructive hover:bg-destructive/10 transition-colors"
+                      onClick={() => deleteGroupWithAll(nodeMenu.nodeId)}
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                      Delete All
+                    </button>
+                  </>
+                )}
               </div>
             </div>
           )}

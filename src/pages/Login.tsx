@@ -82,8 +82,16 @@ export default function Login() {
         localStorage.setItem("user_id", String(parsedBody.userID));
       }
 
-      toast.success(isSignUp ? "Account created successfully!" : "Welcome back!");
-      navigate("/");
+      const firstName = isSignUp
+        ? formData.firstName
+        : (parsedBody.userFname || parsedBody.firstName || "");
+
+      if (firstName) {
+        localStorage.setItem("user_fname", firstName);
+      }
+
+      toast.success(`Welcome${isSignUp ? "" : " back"}, ${firstName || "there"}!`);
+      navigate("/dashboard");
     } catch (error) {
       console.error("Auth error:", error);
       toast.error(error instanceof Error ? error.message : "Authentication failed");

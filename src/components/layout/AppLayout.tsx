@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Outlet, NavLink, useLocation } from "react-router-dom";
+import { Outlet, NavLink, useLocation, useNavigate } from "react-router-dom";
 import {
   LayoutDashboard,
   Leaf,
@@ -10,7 +10,7 @@ import {
   ChevronRight,
   Sprout,
   Menu,
-  LogIn,
+  LogOut,
   CalendarDays,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -18,11 +18,10 @@ import { Button } from "@/components/ui/button";
 import { Chatbot } from "@/components/chat/Chatbot";
 
 const navItems = [
-  { to: "/", icon: LayoutDashboard, label: "Dashboard" },
+  { to: "/dashboard", icon: LayoutDashboard, label: "Dashboard" },
   { to: "/garden", icon: Leaf, label: "Garden Builder" },
   { to: "/calendar", icon: CalendarDays, label: "Calendar" },
   { to: "/goals", icon: Target, label: "Goals" },
-  { to: "/login", icon: LogIn, label: "Login" },
 ];
 
 export function AppLayout() {
@@ -30,6 +29,13 @@ export function AppLayout() {
   const [chatOpen, setChatOpen] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const location = useLocation();
+  const navigate = useNavigate();
+
+  const handleLogout = () => {
+    localStorage.removeItem("user_id");
+    localStorage.removeItem("user_fname");
+    navigate("/");
+  };
 
   return (
     <div className="flex h-screen bg-background overflow-hidden">
@@ -97,6 +103,25 @@ export function AppLayout() {
               </NavLink>
             );
           })}
+          <button
+            onClick={handleLogout}
+            className="w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 text-sidebar-foreground/70 hover:text-sidebar-foreground hover:bg-sidebar-accent/50"
+          >
+            <LogOut className="w-5 h-5 shrink-0" />
+            <AnimatePresence>
+              {sidebarOpen && (
+                <motion.span
+                  initial={{ opacity: 0, width: 0 }}
+                  animate={{ opacity: 1, width: "auto" }}
+                  exit={{ opacity: 0, width: 0 }}
+                  transition={{ duration: 0.2 }}
+                  className="font-medium whitespace-nowrap overflow-hidden"
+                >
+                  Logout
+                </motion.span>
+              )}
+            </AnimatePresence>
+          </button>
         </nav>
 
         {/* Collapse Button */}
@@ -195,6 +220,13 @@ export function AppLayout() {
                   </NavLink>
                 );
               })}
+              <button
+                onClick={handleLogout}
+                className="w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 text-sidebar-foreground/70 hover:text-sidebar-foreground hover:bg-sidebar-accent/50"
+              >
+                <LogOut className="w-5 h-5" />
+                <span className="font-medium">Logout</span>
+              </button>
             </nav>
           </motion.div>
         )}

@@ -8,7 +8,6 @@ import {
   CheckCircle2,
   Circle,
   ChevronRight,
-  ChevronDown,
   Leaf,
   Droplets,
   Sparkles,
@@ -38,12 +37,11 @@ const itemVariants = {
 export default function Goals() {
   const { goals, toggleComplete, updateGoalDueDate, addGoal, removeGoal } = useGoals();
   const [modalOpen, setModalOpen] = useState(false);
-  const [activeTab, setActiveTab] = useState<GoalType>("long-term");
-  const [completedOpen, setCompletedOpen] = useState(false);
+  const [activeTab, setActiveTab] = useState<GoalType | "archived">("long-term");
 
-  const tabGoals = goals.filter((g) => g.type === activeTab);
-  const activeGoals = tabGoals.filter((g) => !g.completed);
-  const completedGoals = tabGoals.filter((g) => g.completed);
+  const tabGoals = activeTab === "archived"
+    ? goals.filter((g) => g.completed)
+    : goals.filter((g) => g.type === activeTab && !g.completed);
 
   const stats = {
     total: goals.length,
@@ -140,11 +138,10 @@ export default function Goals() {
           </div>
         </motion.div>
 
-        {/* Active Goals */}
+        {/* Goals List */}
         <motion.div variants={itemVariants} className="space-y-4">
           <AnimatePresence mode="popLayout">
-            {activeGoals.map((goal, index) => (
-            {activeGoals.map((goal, index) => (
+            {tabGoals.map((goal, index) => (
               <motion.div
                 key={goal.id}
                 initial={{ opacity: 0, y: 20 }}
@@ -152,153 +149,126 @@ export default function Goals() {
                 exit={{ opacity: 0, y: -20 }}
                 transition={{ delay: index * 0.05 }}
               >
-                <Card variant="interactive">
-                  <CardContent className="p-5">
-                    <div className="flex gap-4">
-                      <button onClick={() => toggleComplete(goal.id)} className="shrink-0 mt-1">
-                        <Circle className="w-6 h-6 text-muted-foreground hover:text-foreground transition-colors" />
-                      </button>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-start justify-between gap-4">
-                          <div>
-                            <h3 className="font-medium text-foreground">{goal.title || goal.description}</h3>
-                            {goal.plant && (
-                              <span className="inline-flex items-center gap-1 text-xs text-leaf bg-leaf/10 px-2 py-0.5 rounded-full mt-1">
-                                <Leaf className="w-3 h-3" />
-                                {goal.plant}
-                              </span>
-                            )}
-                          </div>
-                          <div className="flex items-center gap-2 shrink-0">
-                            <Button variant="ghost" size="icon" className="h-8 w-8">
-                              <Edit2 className="w-4 h-4" />
-                            </Button>
-                            <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => removeGoal(goal.id)}>
+                {activeTab === "archived" ? (
+                  <Card className="border-leaf/20 bg-leaf/5">
+                    <CardContent className="p-5">
+                      <div className="flex gap-4">
+                        <CheckCircle2 className="w-6 h-6 text-leaf shrink-0 mt-1" />
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-start justify-between gap-4">
+                            <div>
+                              <h3 className="font-medium text-muted-foreground line-through">
+                                {goal.title || goal.description}
+                              </h3>
+                              {goal.plant && (
+                                <span className="inline-flex items-center gap-1 text-xs text-leaf/70 bg-leaf/10 px-2 py-0.5 rounded-full mt-1">
+                                  <Leaf className="w-3 h-3" />
+                                  {goal.plant}
+                                </span>
+                              )}
+                            </div>
+                            <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive shrink-0" onClick={() => removeGoal(goal.id)}>
                               <Trash2 className="w-4 h-4" />
                             </Button>
                           </div>
-                        </div>
-                        {goal.title && <p className="text-sm text-muted-foreground mt-1">{goal.description}</p>}
-                        <div className="mt-4 flex items-center gap-4">
-                          <div className="flex-1">
-                            <div className="flex items-center justify-between text-xs mb-1">
-                              <span className="text-muted-foreground">Progress</span>
-                              <span className="font-medium text-foreground">{goal.progress}%</span>
-                            </div>
-                            <div className="h-2 bg-secondary rounded-full overflow-hidden">
-                              <motion.div
-                                initial={{ width: 0 }}
-                                animate={{ width: `${goal.progress}%` }}
-                                transition={{ duration: 0.5 }}
-                                className={cn("h-full rounded-full", goal.progress >= 50 ? "bg-sky" : "bg-sun")}
-                              />
-                            </div>
-                          </div>
-                          <Popover>
-                            <PopoverTrigger asChild>
-                              <Button variant="ghost" size="sm" className={cn("gap-1 text-xs shrink-0", goal.dueDate ? "text-foreground" : "text-muted-foreground")}>
-                                <CalendarIcon className="w-3 h-3" />
-                                {goal.dueDate ? format(new Date(goal.dueDate + "T00:00:00"), "MMM d, yyyy") : "Set due date"}
-                              </Button>
-                            </PopoverTrigger>
-                            <PopoverContent className="w-auto p-0" align="end">
-                              <Calendar
-                                mode="single"
-                                selected={goal.dueDate ? new Date(goal.dueDate + "T00:00:00") : undefined}
-                                onSelect={(date) => updateGoalDueDate(goal.id, date ? format(date, "yyyy-MM-dd") : undefined)}
-                                initialFocus
-                                className="p-3 pointer-events-auto"
-                              />
-                            </PopoverContent>
-                          </Popover>
+                          {goal.title && <p className="text-sm text-muted-foreground/70 mt-1">{goal.description}</p>}
                         </div>
                       </div>
-                      <ChevronRight className="w-5 h-5 text-muted-foreground shrink-0 mt-1" />
-                    </div>
-                  </CardContent>
-                </Card>
+                    </CardContent>
+                  </Card>
+                ) : (
+                  <Card variant="interactive">
+                    <CardContent className="p-5">
+                      <div className="flex gap-4">
+                        <button onClick={() => toggleComplete(goal.id)} className="shrink-0 mt-1">
+                          <Circle className="w-6 h-6 text-muted-foreground hover:text-foreground transition-colors" />
+                        </button>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-start justify-between gap-4">
+                            <div>
+                              <h3 className="font-medium text-foreground">{goal.title || goal.description}</h3>
+                              {goal.plant && (
+                                <span className="inline-flex items-center gap-1 text-xs text-leaf bg-leaf/10 px-2 py-0.5 rounded-full mt-1">
+                                  <Leaf className="w-3 h-3" />
+                                  {goal.plant}
+                                </span>
+                              )}
+                            </div>
+                            <div className="flex items-center gap-2 shrink-0">
+                              <Button variant="ghost" size="icon" className="h-8 w-8">
+                                <Edit2 className="w-4 h-4" />
+                              </Button>
+                              <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => removeGoal(goal.id)}>
+                                <Trash2 className="w-4 h-4" />
+                              </Button>
+                            </div>
+                          </div>
+                          {goal.title && <p className="text-sm text-muted-foreground mt-1">{goal.description}</p>}
+                          <div className="mt-4 flex items-center gap-4">
+                            <div className="flex-1">
+                              <div className="flex items-center justify-between text-xs mb-1">
+                                <span className="text-muted-foreground">Progress</span>
+                                <span className="font-medium text-foreground">{goal.progress}%</span>
+                              </div>
+                              <div className="h-2 bg-secondary rounded-full overflow-hidden">
+                                <motion.div
+                                  initial={{ width: 0 }}
+                                  animate={{ width: `${goal.progress}%` }}
+                                  transition={{ duration: 0.5 }}
+                                  className={cn("h-full rounded-full", goal.progress >= 50 ? "bg-sky" : "bg-sun")}
+                                />
+                              </div>
+                            </div>
+                            <Popover>
+                              <PopoverTrigger asChild>
+                                <Button variant="ghost" size="sm" className={cn("gap-1 text-xs shrink-0", goal.dueDate ? "text-foreground" : "text-muted-foreground")}>
+                                  <CalendarIcon className="w-3 h-3" />
+                                  {goal.dueDate ? format(new Date(goal.dueDate + "T00:00:00"), "MMM d, yyyy") : "Set due date"}
+                                </Button>
+                              </PopoverTrigger>
+                              <PopoverContent className="w-auto p-0" align="end">
+                                <Calendar
+                                  mode="single"
+                                  selected={goal.dueDate ? new Date(goal.dueDate + "T00:00:00") : undefined}
+                                  onSelect={(date) => updateGoalDueDate(goal.id, date ? format(date, "yyyy-MM-dd") : undefined)}
+                                  initialFocus
+                                  className="p-3 pointer-events-auto"
+                                />
+                              </PopoverContent>
+                            </Popover>
+                          </div>
+                        </div>
+                        <ChevronRight className="w-5 h-5 text-muted-foreground shrink-0 mt-1" />
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
               </motion.div>
             ))}
           </AnimatePresence>
 
-          {activeGoals.length === 0 && completedGoals.length === 0 && (
+          {tabGoals.length === 0 && (
             <Card className="border-dashed">
               <CardContent className="p-12 text-center">
                 <div className="w-16 h-16 rounded-full bg-secondary mx-auto flex items-center justify-center mb-4">
                   <Target className="w-8 h-8 text-muted-foreground" />
                 </div>
-                <h3 className="font-display font-semibold text-foreground mb-2">No goals yet</h3>
-                <p className="text-muted-foreground mb-4">Add your first goal to start tracking your garden progress</p>
-                <Button variant="nature" onClick={() => setModalOpen(true)}>
-                  <Plus className="w-4 h-4 mr-2" />
-                  Add Goal
-                </Button>
+                <h3 className="font-display font-semibold text-foreground mb-2">
+                  {activeTab === "archived" ? "No completed goals yet" : "No goals yet"}
+                </h3>
+                <p className="text-muted-foreground mb-4">
+                  {activeTab === "archived" ? "Complete a goal to see it here" : "Add your first goal to start tracking your garden progress"}
+                </p>
+                {activeTab !== "archived" && (
+                  <Button variant="nature" onClick={() => setModalOpen(true)}>
+                    <Plus className="w-4 h-4 mr-2" />
+                    Add Goal
+                  </Button>
+                )}
               </CardContent>
             </Card>
           )}
         </motion.div>
-
-        {/* Completed Section */}
-        {completedGoals.length > 0 && (
-          <motion.div variants={itemVariants}>
-            <button
-              onClick={() => setCompletedOpen((o) => !o)}
-              className="flex items-center gap-2 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors mb-3"
-            >
-              <ChevronDown className={cn("w-4 h-4 transition-transform duration-200", completedOpen && "rotate-180")} />
-              Completed
-              <span className="ml-1 px-1.5 py-0.5 rounded-full bg-leaf/15 text-leaf text-xs">{completedGoals.length}</span>
-            </button>
-
-            <AnimatePresence>
-              {completedOpen && (
-                <motion.div
-                  initial={{ opacity: 0, height: 0 }}
-                  animate={{ opacity: 1, height: "auto" }}
-                  exit={{ opacity: 0, height: 0 }}
-                  transition={{ duration: 0.2 }}
-                  className="space-y-3 overflow-hidden"
-                >
-                  {completedGoals.map((goal, index) => (
-                    <motion.div
-                      key={goal.id}
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: index * 0.04 }}
-                    >
-                      <Card className="border-leaf/20 bg-leaf/5">
-                        <CardContent className="p-5">
-                          <div className="flex gap-4">
-                            <CheckCircle2 className="w-6 h-6 text-leaf shrink-0 mt-1" />
-                            <div className="flex-1 min-w-0">
-                              <div className="flex items-start justify-between gap-4">
-                                <div>
-                                  <h3 className="font-medium text-muted-foreground line-through">
-                                    {goal.title || goal.description}
-                                  </h3>
-                                  {goal.plant && (
-                                    <span className="inline-flex items-center gap-1 text-xs text-leaf/70 bg-leaf/10 px-2 py-0.5 rounded-full mt-1">
-                                      <Leaf className="w-3 h-3" />
-                                      {goal.plant}
-                                    </span>
-                                  )}
-                                </div>
-                                <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive shrink-0" onClick={() => removeGoal(goal.id)}>
-                                  <Trash2 className="w-4 h-4" />
-                                </Button>
-                              </div>
-                              {goal.title && <p className="text-sm text-muted-foreground/70 mt-1">{goal.description}</p>}
-                            </div>
-                          </div>
-                        </CardContent>
-                      </Card>
-                    </motion.div>
-                  ))}
-                </motion.div>
-              )}
-            </AnimatePresence>
-          </motion.div>
-        )}
       </motion.div>
       <AddGoalModal
         open={modalOpen}
