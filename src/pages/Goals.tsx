@@ -15,6 +15,7 @@ import {
   Flag,
   Edit2,
   Trash2,
+  Archive,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -50,19 +51,21 @@ export default function Goals() {
     inProgress: goals.filter((g) => !g.completed).length,
   };
 
-  const getTypeIcon = (type: GoalType) => {
+  const getTypeIcon = (type: GoalType | "archived") => {
     switch (type) {
       case "long-term": return <Flag className="w-4 h-4" />;
       case "short-term": return <CalendarIcon className="w-4 h-4" />;
       case "plant": return <Leaf className="w-4 h-4" />;
+      case "archived": return <Archive className="w-4 h-4" />;
     }
   };
 
-  const getTypeColor = (type: GoalType) => {
+  const getTypeColor = (type: GoalType | "archived") => {
     switch (type) {
       case "long-term": return "text-sun";
       case "short-term": return "text-sky";
       case "plant": return "text-leaf";
+      case "archived": return "text-muted-foreground";
     }
   };
 
@@ -121,7 +124,7 @@ export default function Goals() {
         {/* Tabs */}
         <motion.div variants={itemVariants}>
           <div className="flex gap-2 p-1 bg-secondary rounded-xl w-fit">
-            {(["long-term", "short-term", "plant"] as GoalType[]).map((type) => (
+            {(["long-term", "short-term", "plant", "archived"] as (GoalType | "archived")[]).map((type) => (
               <button
                 key={type}
                 onClick={() => setActiveTab(type)}
@@ -131,7 +134,7 @@ export default function Goals() {
                 )}
               >
                 <span className={getTypeColor(type)}>{getTypeIcon(type)}</span>
-                {type === "long-term" ? "Long-Term Vision" : type === "short-term" ? "Short-Term Goals" : "Plant Tasks"}
+                {type === "long-term" ? "Long-Term Vision" : type === "short-term" ? "Short-Term Goals" : type === "plant" ? "Plant Tasks" : "Past Goals"}
               </button>
             ))}
           </div>
@@ -140,6 +143,7 @@ export default function Goals() {
         {/* Active Goals */}
         <motion.div variants={itemVariants} className="space-y-4">
           <AnimatePresence mode="popLayout">
+            {activeGoals.map((goal, index) => (
             {activeGoals.map((goal, index) => (
               <motion.div
                 key={goal.id}
