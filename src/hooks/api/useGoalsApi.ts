@@ -8,12 +8,12 @@ const API_URL = "https://hotrs7nexh.execute-api.us-east-2.amazonaws.com/test/use
 function decodePlantDescription(combined: string): { plant_title: string; description: string } {
   const match = combined.match(/^(\d+)(.*)$/s);
   if (!match) return { plant_title: "", description: combined };
-  
+
   const titleLength = parseInt(match[1], 10);
   const rest = match[2];
   const plant_title = rest.slice(0, titleLength);
   const description = rest.slice(titleLength);
-  
+
   return { plant_title, description };
 }
 
@@ -21,9 +21,10 @@ function decodePlantDescription(combined: string): { plant_title: string; descri
 
 export interface GoalItem {
   goal_type: "long-term" | "short-term" | "plant";
+  title?: string;
   description: string;
   plant_title?: string;
-  due_date?: string;
+  dueDate?: string;
 }
 
 interface AddGoalsPayload {
@@ -64,9 +65,10 @@ interface UpdateGoalsPayload {
 
 export function useGoalsApi(userID: number) {
   const qc = useQueryClient();
+  const queryKey = [...QUERY_KEY, userID];
 
   const query = useQuery<GoalPayload[]>({
-    queryKey: [...QUERY_KEY, userID],
+    queryKey,
     queryFn: async () => {
       const raw = await apiFetch<{ statusCode: number; body: string }>(API_URL, {
         method: "POST",
@@ -98,11 +100,9 @@ export function useGoalsApi(userID: number) {
           dueDate: g.due_date ?? undefined,
         } satisfies GoalPayload;
       });
-    },  // <-- closes queryFn
+    },
     retry: false,
-  });  // <-- closes useQuery
-
-  const queryKey = [...QUERY_KEY, userID];
+  });
 
   const createGoals = useMutation({
     mutationFn: (goal_list: GoalItem[]) =>
@@ -157,40 +157,5 @@ export function useGoalsApi(userID: number) {
     onSettled: () => qc.invalidateQueries({ queryKey }),
   });
 
-  const updateGoals = useMutation({
-    mutationFn: (goal_list: UpdateGoalItem[]) =>
-      apiFetch<{ message: string }>(API_URL, {
-        method: "POST",
-        body: JSON.stringify({ api_type: "update", userID, goal_list } satisfies UpdateGoalsPayload),
-      }),
-    onMutate: async (goal_list) => {
-      await qc.cancelQueries({ queryKey });
-      const prev = qc.getQueryData<GoalPayload[]>(queryKey);
-      qc.setQueryData<GoalPayload[]>(queryKey, (old) =>
-        old?.map((g) => {
-          const update = goal_list.find((u) => String(u.goal_id) === g.id);
-          if (!update) return g;
-          const next: GoalPayload = { ...g };
-          if (update.due_date !== undefined) next.dueDate = update.due_date ?? undefined;
-          if (update.description !== undefined) {
-            if (g.type === "plant") {
-              const { plant_title, description } = decodePlantDescription(update.description);
-              next.plant = plant_title;
-              next.description = description;
-            } else {
-              next.description = update.description;
-            }
-          }
-          return next;
-        }) ?? []
-      );
-      return { prev };
-    },
-    onError: (_err, _vars, ctx) => {
-      if (ctx?.prev) qc.setQueryData(queryKey, ctx.prev);
-    },
-    onSettled: () => qc.invalidateQueries({ queryKey }),
-  });
-
-  return { ...query, createGoals, removeGoals, archiveGoals, updateGoals };
-}  // <-- closes useGoalsApi
+  return { ...query, createGoals, removeGoals, archiveGoals };
+}

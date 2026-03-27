@@ -63,7 +63,7 @@ export function AppLayout() {
                 className="overflow-hidden"
               >
                 <h1 className="font-display font-bold text-xl text-sidebar-foreground whitespace-nowrap">
-                  GreenThumb
+                  GnomeAI
                 </h1>
                 <p className="text-xs text-sidebar-foreground/60 whitespace-nowrap">
                   Smart Garden Manager
