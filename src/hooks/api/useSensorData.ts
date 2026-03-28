@@ -49,6 +49,44 @@ const mockSummaries: SensorSummary[] = [
       { time: "9PM", value: 50 },
     ],
   },
+  {
+    type: "humidity",
+    currentValue: 68,
+    unit: "%",
+    trend: "-3% from yesterday",
+    trendDirection: "down",
+    readings: [
+      { time: "6AM", value: 72 },
+      { time: "9AM", value: 70 },
+      { time: "12PM", value: 65 },
+      { time: "3PM", value: 62 },
+      { time: "6PM", value: 66 },
+      { time: "9PM", value: 71 },
+    ],
+  },
+  {
+    type: "ph",
+    currentValue: 6.5,
+    unit: " pH",
+    trend: "Optimal range: 6.0-7.0",
+    trendDirection: "stable",
+    readings: [
+      { time: "6AM", value: 6.4 },
+      { time: "9AM", value: 6.5 },
+      { time: "12PM", value: 6.6 },
+      { time: "3PM", value: 6.5 },
+      { time: "6PM", value: 6.4 },
+      { time: "9PM", value: 6.5 },
+    ],
+  },
+  {
+    type: "camera",
+    currentValue: 0,
+    unit: "",
+    trend: "Live feed active",
+    trendDirection: "stable",
+    readings: [],
+  },
 ];
 
 export function useSensorData() {

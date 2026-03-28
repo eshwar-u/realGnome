@@ -1,3 +1,4 @@
+import { useMemo } from "react";
 import { motion } from "framer-motion";
 import {
   Droplets,
@@ -9,6 +10,9 @@ import {
   TrendingDown,
   Plus,
   Bell,
+  Wind,
+  FlaskConical,
+  Camera,
 } from "lucide-react";
 import {
   Card,
@@ -32,6 +36,8 @@ import {
 import { Skeleton } from "@/components/ui/skeleton";
 import { useSensorData } from "@/hooks/api/useSensorData";
 import { usePlantHealth, useAlerts, useAveragePlantHealth } from "@/hooks/api/usePlantHealth";
+import { useGardenLayout } from "@/hooks/api/useGardenLayout";
+import type { SensorSummary } from "@/types/api";
 
 const containerVariants = {
   hidden: { opacity: 0 },
@@ -42,21 +48,87 @@ const itemVariants = {
   visible: { opacity: 1, y: 0 },
 };
 
-const sensorIcons = { moisture: Droplets, temperature: Thermometer, light: Sun };
-const sensorCardVariants: Record<string, string> = {
-  moisture: "sensor",
-  temperature: "default",
-  light: "default",
-};
-const sensorIconBg: Record<string, string> = {
-  moisture: "bg-sky/20",
-  temperature: "bg-warning/20",
-  light: "bg-sun/20",
-};
-const sensorIconColor: Record<string, string> = {
-  moisture: "text-sky",
-  temperature: "text-warning",
-  light: "text-sun",
+type SensorType = SensorSummary["type"];
+
+interface SensorConfig {
+  icon: React.ElementType;
+  color: string;
+  unit: string;
+  chartType: "area" | "line";
+  title: string;
+  description: string;
+  iconBg: string;
+  iconColor: string;
+  cardVariant: string;
+}
+
+const sensorConfig: Record<SensorType, SensorConfig> = {
+  moisture: {
+    icon: Droplets,
+    color: "hsl(195, 80%, 50%)",
+    unit: "%",
+    chartType: "area",
+    title: "Soil Moisture",
+    description: "24-hour moisture levels across all sensors",
+    iconBg: "bg-sky/20",
+    iconColor: "text-sky",
+    cardVariant: "sensor",
+  },
+  temperature: {
+    icon: Thermometer,
+    color: "hsl(35, 95%, 55%)",
+    unit: "°C",
+    chartType: "line",
+    title: "Temperature",
+    description: "Ambient temperature readings throughout the day",
+    iconBg: "bg-warning/20",
+    iconColor: "text-warning",
+    cardVariant: "default",
+  },
+  light: {
+    icon: Sun,
+    color: "hsl(50, 95%, 55%)",
+    unit: " lux",
+    chartType: "area",
+    title: "Light Intensity",
+    description: "Sunlight exposure throughout the day",
+    iconBg: "bg-sun/20",
+    iconColor: "text-sun",
+    cardVariant: "default",
+  },
+  humidity: {
+    icon: Wind,
+    color: "hsl(220, 80%, 60%)",
+    unit: "%",
+    chartType: "area",
+    title: "Humidity",
+    description: "Air humidity levels over the last 24 hours",
+    iconBg: "bg-sky/10",
+    iconColor: "text-sky",
+    cardVariant: "default",
+  },
+  ph: {
+    icon: FlaskConical,
+    color: "hsl(280, 80%, 60%)",
+    unit: " pH",
+    chartType: "line",
+    title: "Soil pH",
+    description: "Soil acidity and alkalinity levels",
+    iconBg: "bg-purple-500/20",
+    iconColor: "text-purple-500",
+    cardVariant: "default",
+  },
+  camera: {
+    icon: Camera,
+    color: "hsl(0, 0%, 50%)",
+    unit: "",
+    chartType: "line",
+    title: "Camera",
+    description: "Visual monitoring",
+    iconBg: "bg-muted/50",
+    iconColor: "text-muted-foreground",
+    cardVariant: "default",
+  },
 };
 
 export default function Dashboard() {
@@ -64,6 +136,29 @@ export default function Dashboard() {
   const { data: plants, isLoading: plantsLoading } = usePlantHealth();
   const { average: avgHealth, count: plantCount } = useAveragePlantHealth();
   const { data: alerts, isLoading: alertsLoading } = useAlerts();
+  const { data: gardenLayout, isLoading: layoutLoading } = useGardenLayout();
+
+  // Derive sensor types from garden builder nodes
+  const gardenSensorTypes = useMemo<SensorType[] | null>(() => {
+    if (!gardenLayout?.nodes) return null;
+    const sensorNodes = gardenLayout.nodes.filter((n) => n.type === "sensor");
+    const types = [
+      ...new Set(
+        sensorNodes
+          .map((n) => n.data.type as SensorType)
+          .filter((t): t is SensorType => Boolean(t) && t in sensorConfig)
+      ),
+    ];
+    return types.length > 0 ? types : null;
+  }, [gardenLayout]);
+
+  // Types to show in stat cards (from garden if available, else all from API)
+  const activeTypes: SensorType[] = gardenSensorTypes ?? (sensors?.map((s) => s.type) ?? []);
+
+  // Types to show charts for (exclude camera — no numerical time-series)
+  const chartTypes = activeTypes.filter((t) => t !== "camera");
+
+  const chartsLoading = sensorsLoading || layoutLoading;
 
   return (
     <div className="min-h-screen bg-background p-6 md:p-8">
@@ -105,18 +200,27 @@ export default function Dashboard() {
                   </CardContent>
                 </Card>
               ))
-            : sensors?.map((sensor) => {
-                const Icon = sensorIcons[sensor.type] ?? Sun;
-                const TrendIcon = sensor.trendDirection === "up" ? TrendingUp : sensor.trendDirection === "down" ? TrendingDown : TrendingUp;
+            : activeTypes.map((type) => {
+                const cfg = sensorConfig[type];
+                if (!cfg) return null;
+                const sensor = sensors?.find((s) => s.type === type);
+                if (!sensor) return null;
+                const Icon = cfg.icon;
+                const TrendIcon =
+                  sensor.trendDirection === "up"
+                    ? TrendingUp
+                    : sensor.trendDirection === "down"
+                    ? TrendingDown
+                    : TrendingUp;
                 return (
-                  <Card key={sensor.type} variant={sensorCardVariants[sensor.type] as any} className="relative overflow-hidden">
+                  <Card key={type} variant={cfg.cardVariant as any} className="relative overflow-hidden">
                     <CardContent className="p-5">
                       <div className="flex items-center gap-4">
-                        <div className={`w-12 h-12 rounded-xl ${sensorIconBg[sensor.type]} flex items-center justify-center`}>
-                          <Icon className={`w-6 h-6 ${sensorIconColor[sensor.type]}`} />
+                        <div className={`w-12 h-12 rounded-xl ${cfg.iconBg} flex items-center justify-center`}>
+                          <Icon className={`w-6 h-6 ${cfg.iconColor}`} />
                         </div>
                         <div>
-                          <p className="text-sm text-muted-foreground capitalize">{sensor.type}</p>
+                          <p className="text-sm text-muted-foreground capitalize">{type}</p>
                           <p className="text-2xl font-display font-bold text-foreground">
                             {sensor.currentValue}{sensor.unit}
                           </p>
@@ -152,27 +256,42 @@ export default function Dashboard() {
           </Card>
         </motion.div>
 
-        {/* Charts */}
-        <motion.div variants={itemVariants} className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <SensorChart
-            title="Soil Moisture"
-            description="24-hour moisture levels across all sensors"
-            icon={<Droplets className="w-5 h-5 text-sky" />}
-            data={sensors?.find((s) => s.type === "moisture")?.readings ?? []}
-            color="hsl(195, 80%, 50%)"
-            unit="%"
-            loading={sensorsLoading}
-          />
-          <SensorChart
-            title="Temperature"
-            description="Ambient temperature readings throughout the day"
-            icon={<Thermometer className="w-5 h-5 text-warning" />}
-            data={sensors?.find((s) => s.type === "temperature")?.readings ?? []}
-            color="hsl(35, 95%, 55%)"
-            unit="°C"
-            loading={sensorsLoading}
-            chartType="line"
-          />
+        {/* Sensor Charts — one per sensor type in the garden */}
+        <motion.div variants={itemVariants}>
+          {chartsLoading ? (
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <Card><CardContent className="p-6"><Skeleton className="h-64 w-full" /></CardContent></Card>
+              <Card><CardContent className="p-6"><Skeleton className="h-64 w-full" /></CardContent></Card>
+            </div>
+          ) : chartTypes.length === 0 ? (
+            <Card>
+              <CardContent className="p-8 text-center text-muted-foreground">
+                <p className="text-sm">No sensors found in your garden layout.</p>
+                <p className="text-xs mt-1">Add sensors in the Garden Builder to see charts here.</p>
+              </CardContent>
+            </Card>
+          ) : (
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {chartTypes.map((type) => {
+                const cfg = sensorConfig[type];
+                const sensorData = sensors?.find((s) => s.type === type);
+                const Icon = cfg.icon;
+                return (
+                  <SensorChart
+                    key={type}
+                    title={cfg.title}
+                    description={cfg.description}
+                    icon={<Icon className={`w-5 h-5 ${cfg.iconColor}`} />}
+                    data={sensorData?.readings ?? []}
+                    color={cfg.color}
+                    unit={cfg.unit}
+                    loading={false}
+                    chartType={cfg.chartType}
+                  />
+                );
+              })}
+            </div>
+          )}
         </motion.div>
 
         {/* Plant Health & Alerts */}

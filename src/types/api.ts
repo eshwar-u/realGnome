@@ -6,7 +6,7 @@ export interface SensorReading {
 }
 
 export interface SensorSummary {
-  type: "moisture" | "temperature" | "light";
+  type: "moisture" | "temperature" | "light" | "humidity" | "ph" | "camera";
   currentValue: number;
   unit: string;          // "%", "°C", "lux"
   trend: string;         // "+5% from yesterday"
