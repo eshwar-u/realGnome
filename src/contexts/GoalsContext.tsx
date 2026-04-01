@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect, ReactNode, useCallback } from "react";
+import { createContext, useContext, useState, useEffect, useRef, ReactNode, useCallback } from "react";
 import { useGoalsApi } from "@/hooks/api/useGoalsApi";
 import type { GoalItem } from "@/hooks/api/useGoalsApi";
 
@@ -13,17 +13,19 @@ export interface Goal {
   dueDate?: string;
   completed: boolean;
   plant?: string;
+  removedFromTab?: boolean;
 }
 
 interface GoalsContextType {
   goals: Goal[];
   addGoal: (goal: GoalItem) => void;
-  removeGoal: (id: string) => void;
+  removeGoal: (id: string, permanent?: boolean) => void;
   setGoals: React.Dispatch<React.SetStateAction<Goal[]>>;
   toggleComplete: (id: string) => void;
   updateGoalDueDate: (id: string, date: string | undefined) => void;
   updateGoal: (id: string, updates: { description: string; plant?: string; dueDate?: string | null }) => void;
   isApiConnected: boolean;
+  completedCount: number;
 }
 
 const GoalsContext = createContext<GoalsContextType | undefined>(undefined);
@@ -33,20 +35,49 @@ export function GoalsProvider({ children }: { children: ReactNode }) {
   const { data: apiGoals, isSuccess, createGoals, removeGoals, archiveGoals, updateGoals } = useGoalsApi(userID);
 
   const [goals, setGoals] = useState<Goal[]>([]);
+  const [completedCount, setCompletedCount] = useState(0);
   const isApiConnected = isSuccess;
+  const deletedIds = useRef(new Set<string>());
+  const countInitialized = useRef(false);
 
   useEffect(() => {
     if (isSuccess && apiGoals) {
-      setGoals(apiGoals as Goal[]);
+      // Initialize completedCount from API on first load only
+      if (!countInitialized.current) {
+        setCompletedCount((apiGoals as Goal[]).filter(g => g.completed).length);
+        countInitialized.current = true;
+      }
+      setGoals(prev => {
+        const prevById = new Map(prev.map(g => [g.id, g]));
+        return (apiGoals as Goal[])
+          .filter(g => !deletedIds.current.has(g.id))
+          .map(apiGoal => {
+            const local = prevById.get(apiGoal.id);
+            return {
+              ...apiGoal,
+              completed: local?.completed ?? apiGoal.completed,
+              progress: local?.completed ? 100 : apiGoal.progress,
+              dueDate: local?.dueDate ?? apiGoal.dueDate,
+              removedFromTab: local?.removedFromTab,
+            };
+          });
+      });
     }
   }, [isSuccess, apiGoals]);
 
   const toggleComplete = useCallback(
     (id: string) => {
-      setGoals(prev => prev.map(g => g.id === id ? { ...g, completed: !g.completed } : g));
-      archiveGoals.mutate([Number(id)]);
+      const goal = goals.find(g => g.id === id);
+      if (!goal) return;
+      const nowCompleted = !goal.completed;
+      // Only toggleComplete can change the counter
+      setCompletedCount(c => nowCompleted ? c + 1 : c - 1);
+      setGoals(prev => prev.map(g => g.id === id ? { ...g, completed: nowCompleted, progress: nowCompleted ? 100 : 0 } : g));
+      if (nowCompleted) {
+        archiveGoals.mutate([Number(id)]);
+      }
     },
-    [archiveGoals]
+    [goals, archiveGoals]
   );
 
   const updateGoalDueDate = useCallback(
@@ -89,15 +120,20 @@ export function GoalsProvider({ children }: { children: ReactNode }) {
   );
 
   const removeGoal = useCallback(
-    (id: string) => {
-      setGoals(prev => prev.filter(g => g.id !== id));
-      removeGoals.mutate([Number(id)]);
+    (id: string, permanent = false) => {
+      if (permanent) {
+        deletedIds.current.add(id);
+        setGoals(prev => prev.filter(g => g.id !== id));
+        removeGoals.mutate([Number(id)]);
+      } else {
+        setGoals(prev => prev.map(g => g.id === id ? { ...g, removedFromTab: true } : g));
+      }
     },
     [removeGoals]
   );
 
   return (
-    <GoalsContext.Provider value={{ goals, setGoals, toggleComplete, updateGoalDueDate, updateGoal, addGoal, removeGoal, isApiConnected }}>
+    <GoalsContext.Provider value={{ goals, setGoals, toggleComplete, updateGoalDueDate, updateGoal, addGoal, removeGoal, isApiConnected, completedCount }}>
       {children}
     </GoalsContext.Provider>
   );

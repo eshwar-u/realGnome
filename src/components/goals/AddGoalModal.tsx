@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { format } from "date-fns";
 import { Calendar as CalendarIcon } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
@@ -15,13 +15,18 @@ interface AddGoalModalProps {
   open: boolean;
   onClose: () => void;
   onSubmit: (goal: GoalItem) => void;
+  defaultType?: GoalType;
 }
 
-export function AddGoalModal({ open, onClose, onSubmit }: AddGoalModalProps) {
+export function AddGoalModal({ open, onClose, onSubmit, defaultType = "long-term" }: AddGoalModalProps) {
   const [description, setDescription] = useState("");
-  const [goalType, setGoalType] = useState<GoalType>("long-term");
+  const [goalType, setGoalType] = useState<GoalType>(defaultType);
   const [plantTitle, setPlantTitle] = useState("");
   const [dueDate, setDueDate] = useState<Date | undefined>();
+
+  useEffect(() => {
+    if (open) setGoalType(defaultType);
+  }, [open, defaultType]);
 
   const handleSubmit = () => {
     if (!description.trim()) return;
@@ -39,7 +44,7 @@ export function AddGoalModal({ open, onClose, onSubmit }: AddGoalModalProps) {
 
   const handleClose = () => {
     setDescription("");
-    setGoalType("long-term");
+    setGoalType(defaultType);
     setPlantTitle("");
     setDueDate(undefined);
     onClose();

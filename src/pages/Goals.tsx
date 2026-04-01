@@ -37,7 +37,7 @@ const itemVariants = {
 };
 
 export default function Goals() {
-  const { goals, toggleComplete, updateGoalDueDate, updateGoal, addGoal, removeGoal } = useGoals();
+  const { goals, toggleComplete, updateGoalDueDate, updateGoal, addGoal, removeGoal, completedCount } = useGoals();
   const [modalOpen, setModalOpen] = useState(false);
   const [editingGoal, setEditingGoal] = useState<Goal | null>(null);
   const [activeTab, setActiveTab] = useState<GoalType | "archived">("long-term");
@@ -45,13 +45,13 @@ export default function Goals() {
   const [pendingDates, setPendingDates] = useState<Record<string, Date | undefined>>({});
 
   const tabGoals = activeTab === "archived"
-    ? goals.filter((g) => g.completed)
-    : goals.filter((g) => g.type === activeTab && !g.completed);
+    ? goals.filter((g) => g.completed || g.removedFromTab)
+    : goals.filter((g) => g.type === activeTab && !g.removedFromTab);
 
   const stats = {
-    total: goals.length,
-    completed: goals.filter((g) => g.completed).length,
-    inProgress: goals.filter((g) => !g.completed).length,
+    total: goals.filter((g) => !g.removedFromTab).length,
+    completed: completedCount,
+    inProgress: goals.filter((g) => !g.completed && !g.removedFromTab).length,
   };
 
   const getTypeIcon = (type: GoalType | "archived") => {
@@ -155,10 +155,13 @@ export default function Goals() {
                 transition={{ delay: index * 0.05 }}
               >
                 {activeTab === "archived" ? (
-                  <Card className="border-leaf/20 bg-leaf/5">
+                  <Card className={cn(goal.completed ? "border-leaf/20 bg-leaf/5" : "border-muted/40 bg-muted/10")}>
                     <CardContent className="p-5">
                       <div className="flex gap-4">
-                        <CheckCircle2 className="w-6 h-6 text-leaf shrink-0 mt-1" />
+                        {goal.completed
+                          ? <CheckCircle2 className="w-6 h-6 text-leaf shrink-0 mt-1" />
+                          : <Archive className="w-6 h-6 text-muted-foreground shrink-0 mt-1" />
+                        }
                         <div className="flex-1 min-w-0">
                           <div className="flex items-start justify-between gap-4">
                             <div>
@@ -172,7 +175,7 @@ export default function Goals() {
                                 </span>
                               )}
                             </div>
-                            <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive shrink-0" onClick={() => removeGoal(goal.id)}>
+                            <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive shrink-0" onClick={() => removeGoal(goal.id, true)}>
                               <Trash2 className="w-4 h-4" />
                             </Button>
                           </div>
@@ -182,16 +185,21 @@ export default function Goals() {
                     </CardContent>
                   </Card>
                 ) : (
-                  <Card variant="interactive">
+                  <Card variant="interactive" className={cn(goal.completed && "border-leaf/30 bg-leaf/5")}>
                     <CardContent className="p-5">
                       <div className="flex gap-4">
                         <button onClick={() => toggleComplete(goal.id)} className="shrink-0 mt-1">
-                          <Circle className="w-6 h-6 text-muted-foreground hover:text-foreground transition-colors" />
+                          {goal.completed
+                            ? <CheckCircle2 className="w-6 h-6 text-leaf hover:text-leaf/70 transition-colors" />
+                            : <Circle className="w-6 h-6 text-muted-foreground hover:text-foreground transition-colors" />
+                          }
                         </button>
                         <div className="flex-1 min-w-0">
                           <div className="flex items-start justify-between gap-4">
                             <div>
-                              <h3 className="font-medium text-foreground">{goal.title || goal.description}</h3>
+                              <h3 className={cn("font-medium", goal.completed ? "text-muted-foreground line-through" : "text-foreground")}>
+                                {goal.title || goal.description}
+                              </h3>
                               {goal.plant && (
                                 <span className="inline-flex items-center gap-1 text-xs text-leaf bg-leaf/10 px-2 py-0.5 rounded-full mt-1">
                                   <Leaf className="w-3 h-3" />
@@ -200,69 +208,73 @@ export default function Goals() {
                               )}
                             </div>
                             <div className="flex items-center gap-2 shrink-0">
-                              <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setEditingGoal(goal)}>
-                                <Edit2 className="w-4 h-4" />
-                              </Button>
+                              {!goal.completed && (
+                                <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setEditingGoal(goal)}>
+                                  <Edit2 className="w-4 h-4" />
+                                </Button>
+                              )}
                               <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => removeGoal(goal.id)}>
                                 <Trash2 className="w-4 h-4" />
                               </Button>
                             </div>
                           </div>
-                          {goal.title && <p className="text-sm text-muted-foreground mt-1">{goal.description}</p>}
+                          {goal.title && <p className={cn("text-sm mt-1", goal.completed ? "text-muted-foreground/60" : "text-muted-foreground")}>{goal.description}</p>}
                           <div className="mt-4 flex items-center gap-4">
                             <div className="flex-1">
                               <div className="flex items-center justify-between text-xs mb-1">
                                 <span className="text-muted-foreground">Progress</span>
-                                <span className="font-medium text-foreground">{goal.progress}%</span>
+                                <span className={cn("font-medium", goal.completed ? "text-leaf" : "text-foreground")}>{goal.progress}%</span>
                               </div>
                               <div className="h-2 bg-secondary rounded-full overflow-hidden">
                                 <motion.div
                                   initial={{ width: 0 }}
                                   animate={{ width: `${goal.progress}%` }}
                                   transition={{ duration: 0.5 }}
-                                  className={cn("h-full rounded-full", goal.progress >= 50 ? "bg-sky" : "bg-sun")}
+                                  className={cn("h-full rounded-full", goal.completed ? "bg-leaf" : goal.progress >= 50 ? "bg-sky" : "bg-sun")}
                                 />
                               </div>
                             </div>
-                            <Popover open={openPopoverId === goal.id} onOpenChange={(open) => {
-                              setOpenPopoverId(open ? goal.id : null);
-                              if (!open) setPendingDates((prev) => { const next = { ...prev }; delete next[goal.id]; return next; });
-                            }}>
-                              <PopoverTrigger asChild>
-                                <Button variant="ghost" size="sm" className={cn("gap-1 text-xs shrink-0", goal.dueDate ? "text-foreground" : "text-muted-foreground")}>
-                                  <CalendarIcon className="w-3 h-3" />
-                                  {goal.dueDate ? format(new Date(goal.dueDate + "T00:00:00"), "MMM d, yyyy") : "Set due date"}
-                                </Button>
-                              </PopoverTrigger>
-                              <PopoverContent className="w-auto p-0" align="end">
-                                <Calendar
-                                  mode="single"
-                                  selected={pendingDates[goal.id] ?? (goal.dueDate ? new Date(goal.dueDate + "T00:00:00") : undefined)}
-                                  onSelect={(date) => setPendingDates((prev) => ({ ...prev, [goal.id]: date }))}
-                                  initialFocus
-                                  className="p-3 pointer-events-auto"
-                                />
-                                <div className="flex items-center justify-end gap-2 px-3 pb-3">
-                                  <Button variant="ghost" size="sm" onClick={() => {
-                                    setPendingDates((prev) => { const next = { ...prev }; delete next[goal.id]; return next; });
-                                    setOpenPopoverId(null);
-                                  }}>
-                                    Cancel
+                            {!goal.completed && (
+                              <Popover open={openPopoverId === goal.id} onOpenChange={(open) => {
+                                setOpenPopoverId(open ? goal.id : null);
+                                if (!open) setPendingDates((prev) => { const next = { ...prev }; delete next[goal.id]; return next; });
+                              }}>
+                                <PopoverTrigger asChild>
+                                  <Button variant="ghost" size="sm" className={cn("gap-1 text-xs shrink-0", goal.dueDate ? "text-foreground" : "text-muted-foreground")}>
+                                    <CalendarIcon className="w-3 h-3" />
+                                    {goal.dueDate ? format(new Date(goal.dueDate + "T00:00:00"), "MMM d, yyyy") : "Set due date"}
                                   </Button>
-                                  <Button variant="nature" size="sm" disabled={!(goal.id in pendingDates)} onClick={() => {
-                                    const pending = pendingDates[goal.id];
-                                    updateGoalDueDate(goal.id, pending ? format(pending, "yyyy-MM-dd") : undefined);
-                                    setPendingDates((prev) => { const next = { ...prev }; delete next[goal.id]; return next; });
-                                    setOpenPopoverId(null);
-                                  }}>
-                                    Confirm
-                                  </Button>
-                                </div>
-                              </PopoverContent>
-                            </Popover>
+                                </PopoverTrigger>
+                                <PopoverContent className="w-auto p-0" align="end">
+                                  <Calendar
+                                    mode="single"
+                                    selected={pendingDates[goal.id] ?? (goal.dueDate ? new Date(goal.dueDate + "T00:00:00") : undefined)}
+                                    onSelect={(date) => setPendingDates((prev) => ({ ...prev, [goal.id]: date }))}
+                                    initialFocus
+                                    className="p-3 pointer-events-auto"
+                                  />
+                                  <div className="flex items-center justify-end gap-2 px-3 pb-3">
+                                    <Button variant="ghost" size="sm" onClick={() => {
+                                      setPendingDates((prev) => { const next = { ...prev }; delete next[goal.id]; return next; });
+                                      setOpenPopoverId(null);
+                                    }}>
+                                      Cancel
+                                    </Button>
+                                    <Button variant="nature" size="sm" disabled={!(goal.id in pendingDates)} onClick={() => {
+                                      const pending = pendingDates[goal.id];
+                                      updateGoalDueDate(goal.id, pending ? format(pending, "yyyy-MM-dd") : undefined);
+                                      setPendingDates((prev) => { const next = { ...prev }; delete next[goal.id]; return next; });
+                                      setOpenPopoverId(null);
+                                    }}>
+                                      Confirm
+                                    </Button>
+                                  </div>
+                                </PopoverContent>
+                              </Popover>
+                            )}
                           </div>
                         </div>
-                        <ChevronRight className="w-5 h-5 text-muted-foreground shrink-0 mt-1" />
+                        {!goal.completed && <ChevronRight className="w-5 h-5 text-muted-foreground shrink-0 mt-1" />}
                       </div>
                     </CardContent>
                   </Card>
@@ -298,6 +310,7 @@ export default function Goals() {
         open={modalOpen}
         onClose={() => setModalOpen(false)}
         onSubmit={addGoal}
+        defaultType={activeTab === "archived" ? "long-term" : activeTab}
         />
       <EditGoalModal
         goal={editingGoal}
