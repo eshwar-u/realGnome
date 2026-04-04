@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, isToday } from "date-fns";
+import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, isToday, addDays, isBefore, isAfter } from "date-fns";
 import { useGoals } from "@/contexts/GoalsContext";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -25,6 +25,7 @@ interface WeatherData {
   weatherCode: number;
   tempMax: number;
   tempMin: number;
+  projected?: boolean;
 }
 
 interface Location {
@@ -117,21 +118,24 @@ export default function CalendarPage() {
           const { latitude, longitude } = position.coords;
           try {
             const geoResponse = await fetch(
-              `https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&timezone=auto`
+              `https://nominatim.openstreetmap.org/reverse?lat=${latitude}&lon=${longitude}&format=json`
             );
             const geoData = await geoResponse.json();
-            setLocation({
-              latitude,
-              longitude,
-              name: geoData.timezone?.split("/").pop()?.replace(/_/g, " ") || "Your Location",
-            });
+            const city =
+              geoData.address?.city ||
+              geoData.address?.town ||
+              geoData.address?.village ||
+              geoData.address?.county ||
+              "Your Location";
+            setLocation({ latitude, longitude, name: city });
           } catch {
             setLocation({ latitude, longitude, name: "Your Location" });
           }
         },
         () => {
           setLocation({ latitude: 40.7128, longitude: -74.006, name: "New York" });
-        }
+        },
+        { enableHighAccuracy: true, timeout: 10000 }
       );
     } else {
       setLocation({ latitude: 40.7128, longitude: -74.006, name: "New York" });
@@ -145,24 +149,77 @@ export default function CalendarPage() {
       setLoading(true);
       setError(null);
 
-      try {
-        const start = format(startOfMonth(currentMonth), "yyyy-MM-dd");
-        const end = format(endOfMonth(currentMonth), "yyyy-MM-dd");
+      const today = new Date();
+      const monthStart = startOfMonth(currentMonth);
+      const monthEnd = endOfMonth(currentMonth);
+      const forecastLimit = addDays(today, 15);
+      const weatherDays: WeatherData[] = [];
 
-        const response = await fetch(
-          `https://api.open-meteo.com/v1/forecast?latitude=${location.latitude}&longitude=${location.longitude}&daily=weather_code,temperature_2m_max,temperature_2m_min&start_date=${start}&end_date=${end}&timezone=auto`
-        );
-
-        if (!response.ok) throw new Error("Failed to fetch weather");
-
-        const data = await response.json();
-
-        const weatherDays: WeatherData[] = data.daily.time.map((date: string, index: number) => ({
-          date: new Date(date),
+      const parsedays = (data: { daily: { time: string[]; weather_code: number[]; temperature_2m_max: number[]; temperature_2m_min: number[] } }, projected = false) =>
+        data.daily.time.map((date: string, index: number) => ({
+          date: new Date(date + "T12:00:00"),
           weatherCode: data.daily.weather_code[index],
           tempMax: Math.round(data.daily.temperature_2m_max[index]),
           tempMin: Math.round(data.daily.temperature_2m_min[index]),
+          projected,
         }));
+
+      try {
+        // Past/current days — use archive API
+        if (!isAfter(monthStart, today)) {
+          const archiveStart = format(monthStart, "yyyy-MM-dd");
+          const archiveEnd = format(isBefore(monthEnd, today) ? monthEnd : today, "yyyy-MM-dd");
+          const archiveRes = await fetch(
+            `https://archive-api.open-meteo.com/v1/archive?latitude=${location.latitude}&longitude=${location.longitude}&start_date=${archiveStart}&end_date=${archiveEnd}&daily=weather_code,temperature_2m_max,temperature_2m_min&timezone=auto&temperature_unit=fahrenheit`
+          );
+          if (archiveRes.ok) {
+            const archiveData = await archiveRes.json();
+            if (archiveData.daily) weatherDays.push(...parsedays(archiveData));
+          }
+        }
+
+        // Future days — use forecast API (tomorrow through 16 days out)
+        const tomorrow = addDays(today, 1);
+        if (!isAfter(tomorrow, forecastLimit) && !isBefore(monthEnd, tomorrow)) {
+          const forecastStart = format(isBefore(tomorrow, monthStart) ? monthStart : tomorrow, "yyyy-MM-dd");
+          const forecastEnd = format(isBefore(monthEnd, forecastLimit) ? monthEnd : forecastLimit, "yyyy-MM-dd");
+          const forecastRes = await fetch(
+            `https://api.open-meteo.com/v1/forecast?latitude=${location.latitude}&longitude=${location.longitude}&daily=weather_code,temperature_2m_max,temperature_2m_min&start_date=${forecastStart}&end_date=${forecastEnd}&timezone=auto&temperature_unit=fahrenheit`
+          );
+          if (forecastRes.ok) {
+            const forecastData = await forecastRes.json();
+            if (forecastData.daily) {
+              for (const day of parsedays(forecastData)) {
+                if (!weatherDays.find(d => isSameDay(d.date, day.date))) {
+                  weatherDays.push(day);
+                }
+              }
+            }
+          }
+        }
+
+        // Projected days — dates beyond the 16-day forecast, using last year's archive as estimate
+        if (isAfter(monthEnd, forecastLimit)) {
+          const projStart = addDays(forecastLimit, 1);
+          const projStartLastYear = format(new Date(projStart.getFullYear() - 1, projStart.getMonth(), projStart.getDate()), "yyyy-MM-dd");
+          const projEndLastYear = format(new Date(monthEnd.getFullYear() - 1, monthEnd.getMonth(), monthEnd.getDate()), "yyyy-MM-dd");
+          const projRes = await fetch(
+            `https://archive-api.open-meteo.com/v1/archive?latitude=${location.latitude}&longitude=${location.longitude}&start_date=${projStartLastYear}&end_date=${projEndLastYear}&daily=weather_code,temperature_2m_max,temperature_2m_min&timezone=auto&temperature_unit=fahrenheit`
+          );
+          if (projRes.ok) {
+            const projData = await projRes.json();
+            if (projData.daily) {
+              const parsed = parsedays(projData, true);
+              for (const day of parsed) {
+                // Shift date forward by one year to match current month
+                const shifted = new Date(day.date.getFullYear() + 1, day.date.getMonth(), day.date.getDate(), 12);
+                if (!weatherDays.find(d => isSameDay(d.date, shifted))) {
+                  weatherDays.push({ ...day, date: shifted });
+                }
+              }
+            }
+          }
+        }
 
         setWeatherData(weatherDays);
       } catch (err) {
@@ -229,8 +286,8 @@ export default function CalendarPage() {
               })()}
               <div>
                 <p className="text-sm text-muted-foreground">Today</p>
-                <p className="text-2xl font-bold">{todayWeather.tempMax}°</p>
-                <p className="text-xs text-muted-foreground">{todayWeather.tempMin}° low</p>
+                <p className="text-2xl font-bold">{todayWeather.tempMax}°F</p>
+                <p className="text-xs text-muted-foreground">{todayWeather.tempMin}°F low</p>
               </div>
             </CardContent>
           </Card>
@@ -314,7 +371,8 @@ export default function CalendarPage() {
                           "relative h-16 flex flex-col items-center justify-center rounded-xl transition-all cursor-pointer",
                           today && "ring-2 ring-leaf ring-offset-2 ring-offset-background",
                           isSelected && "bg-accent",
-                          !isSelected && !today && "hover:bg-accent/50"
+                          !isSelected && !today && "hover:bg-accent/50",
+                          weather?.projected && "opacity-60"
                         )}
                       >
                         <span
@@ -326,10 +384,12 @@ export default function CalendarPage() {
                           {format(day, "d")}
                         </span>
                         {WeatherIcon && (
-                          <WeatherIcon className={cn("w-5 h-5 mt-1", getWeatherColor(weather!.weatherCode))} />
+                          <WeatherIcon className={cn("w-5 h-5 mt-1", getWeatherColor(weather!.weatherCode), weather?.projected && "opacity-70")} />
                         )}
                         {weather && (
-                          <span className="text-xs text-muted-foreground">{weather.tempMax}°</span>
+                          <span className="text-xs text-muted-foreground">
+                            {weather.projected ? "~" : ""}{weather.tempMax}°F
+                          </span>
                         )}
                         {dayGoals.length > 0 && (
                           <div className="absolute top-1 right-1 w-2 h-2 rounded-full bg-sun" />
@@ -353,13 +413,18 @@ export default function CalendarPage() {
           <CardContent>
             {selectedWeather ? (
               <div className="space-y-4">
+                {selectedWeather.projected && (
+                  <div className="flex items-center gap-2 text-xs text-muted-foreground bg-accent/50 rounded-lg px-3 py-1.5">
+                    <span>~ Projected based on last year's data</span>
+                  </div>
+                )}
                 <div className="flex items-center gap-4">
                   {(() => {
                     const WeatherIcon = getWeatherIcon(selectedWeather.weatherCode);
-                    return <WeatherIcon className={cn("w-16 h-16", getWeatherColor(selectedWeather.weatherCode))} />;
+                    return <WeatherIcon className={cn("w-16 h-16", getWeatherColor(selectedWeather.weatherCode), selectedWeather.projected && "opacity-70")} />;
                   })()}
                   <div>
-                    <p className="text-4xl font-bold">{selectedWeather.tempMax}°</p>
+                    <p className="text-4xl font-bold">{selectedWeather.projected ? "~" : ""}{selectedWeather.tempMax}°F</p>
                     <p className="text-muted-foreground">{weatherCodeToLabel[selectedWeather.weatherCode] || "Unknown"}</p>
                   </div>
                 </div>
@@ -369,7 +434,7 @@ export default function CalendarPage() {
                   <div>
                     <p className="text-sm font-medium">Temperature Range</p>
                     <p className="text-sm text-muted-foreground">
-                      {selectedWeather.tempMin}° - {selectedWeather.tempMax}°
+                      {selectedWeather.tempMin}°F - {selectedWeather.tempMax}°F
                     </p>
                   </div>
                 </div>
@@ -380,9 +445,9 @@ export default function CalendarPage() {
                   <p className="text-sm text-muted-foreground">
                     {selectedWeather.weatherCode >= 61 && selectedWeather.weatherCode <= 82
                       ? "Rain expected - skip watering your plants today!"
-                      : selectedWeather.tempMax > 30
+                      : selectedWeather.tempMax > 86
                       ? "Hot day ahead - water plants in early morning or evening."
-                      : selectedWeather.tempMin < 5
+                      : selectedWeather.tempMin < 41
                       ? "Cold night expected - protect frost-sensitive plants."
                       : "Great conditions for general garden maintenance!"}
                   </p>
