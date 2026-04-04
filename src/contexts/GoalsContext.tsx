@@ -37,7 +37,12 @@ export function GoalsProvider({ children }: { children: ReactNode }) {
   const [goals, setGoals] = useState<Goal[]>([]);
   const [completedCount, setCompletedCount] = useState(0);
   const isApiConnected = isSuccess;
-  const deletedIds = useRef(new Set<string>());
+  const deletedIds = useRef(new Set<string>(
+    JSON.parse(localStorage.getItem("deletedGoalIds") ?? "[]")
+  ));
+  const removedFromTabIds = useRef(new Set<string>(
+    JSON.parse(localStorage.getItem("removedFromTabIds") ?? "[]")
+  ));
   const countInitialized = useRef(false);
 
   useEffect(() => {
@@ -58,7 +63,7 @@ export function GoalsProvider({ children }: { children: ReactNode }) {
               completed: local?.completed ?? apiGoal.completed,
               progress: local?.completed ? 100 : apiGoal.progress,
               dueDate: local?.dueDate ?? apiGoal.dueDate,
-              removedFromTab: local?.removedFromTab,
+              removedFromTab: removedFromTabIds.current.has(apiGoal.id) || local?.removedFromTab,
             };
           });
       });
@@ -123,9 +128,14 @@ export function GoalsProvider({ children }: { children: ReactNode }) {
     (id: string, permanent = false) => {
       if (permanent) {
         deletedIds.current.add(id);
+        localStorage.setItem("deletedGoalIds", JSON.stringify([...deletedIds.current]));
+        removedFromTabIds.current.delete(id);
+        localStorage.setItem("removedFromTabIds", JSON.stringify([...removedFromTabIds.current]));
         setGoals(prev => prev.filter(g => g.id !== id));
         removeGoals.mutate([Number(id)]);
       } else {
+        removedFromTabIds.current.add(id);
+        localStorage.setItem("removedFromTabIds", JSON.stringify([...removedFromTabIds.current]));
         setGoals(prev => prev.map(g => g.id === id ? { ...g, removedFromTab: true } : g));
       }
     },
