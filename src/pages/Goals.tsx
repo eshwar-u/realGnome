@@ -57,7 +57,6 @@ export default function Goals() {
   const getTypeIcon = (type: GoalType | "archived") => {
     switch (type) {
       case "long-term": return <Flag className="w-4 h-4" />;
-      case "short-term": return <CalendarIcon className="w-4 h-4" />;
       case "plant": return <Leaf className="w-4 h-4" />;
       case "archived": return <Archive className="w-4 h-4" />;
     }
@@ -66,7 +65,6 @@ export default function Goals() {
   const getTypeColor = (type: GoalType | "archived") => {
     switch (type) {
       case "long-term": return "text-sun";
-      case "short-term": return "text-sky";
       case "plant": return "text-leaf";
       case "archived": return "text-muted-foreground";
     }
@@ -127,7 +125,7 @@ export default function Goals() {
         {/* Tabs */}
         <motion.div variants={itemVariants}>
           <div className="flex gap-2 p-1 bg-secondary rounded-xl w-fit">
-            {(["long-term", "short-term", "plant", "archived"] as (GoalType | "archived")[]).map((type) => (
+            {(["long-term", "plant", "archived"] as (GoalType | "archived")[]).map((type) => (
               <button
                 key={type}
                 onClick={() => setActiveTab(type)}
@@ -137,7 +135,7 @@ export default function Goals() {
                 )}
               >
                 <span className={getTypeColor(type)}>{getTypeIcon(type)}</span>
-                {type === "long-term" ? "Long-Term Vision" : type === "short-term" ? "Short-Term Goals" : type === "plant" ? "Plant Tasks" : "Past Goals"}
+                {type === "long-term" ? "Long-Term Vision" : type === "plant" ? "Plant Tasks" : "Past Goals"}
               </button>
             ))}
           </div>
