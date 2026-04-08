@@ -8,6 +8,7 @@ import Dashboard from "@/pages/Dashboard";
 import GardenBuilder from "@/pages/GardenBuilder";
 import CalendarPage from "@/pages/Calendar";
 import Goals from "@/pages/Goals";
+import VisualAnalyser from "@/pages/VisualAnalyser";
 import Login from "@/pages/Login";
 import NotFound from "@/pages/NotFound";
 import { GoalsProvider } from "@/contexts/GoalsContext";
@@ -28,6 +29,7 @@ const App = () => (
             <Route path="/garden" element={<GardenBuilder />} />
             <Route path="/calendar" element={<CalendarPage />} />
             <Route path="/goals" element={<Goals />} />
+            <Route path="/analyse" element={<VisualAnalyser />} />
           </Route>
           <Route path="*" element={<NotFound />} />
         </Routes>

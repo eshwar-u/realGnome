@@ -23,6 +23,7 @@ export interface GoalItem {
   goal_type: "long-term" | "short-term" | "plant";
   description: string;
   plant_title?: string;
+  due_date?: string;
 }
 
 interface AddGoalsPayload {
@@ -46,6 +47,19 @@ interface GetUserGoalsPayload {
   userID: number;
 }
 
+export interface UpdateGoalItem {
+  goal_id: number;
+  description?: string;
+  status?: string;
+  due_date?: string | null;
+}
+
+interface UpdateGoalsPayload {
+  api_type: "update";
+  userID: number;
+  goal_list: UpdateGoalItem[];
+}
+
 // ── Hook ─────────────────────────────────────────────────
 
 export function useGoalsApi(userID: number) {
@@ -65,6 +79,7 @@ export function useGoalsApi(userID: number) {
         goal_type: "long-term" | "short-term" | "plant";
         description: string;
         status: string | null;
+        due_date: string | null;
       }>;
 
       return Object.values(goals).map((g) => {
@@ -80,7 +95,7 @@ export function useGoalsApi(userID: number) {
           progress: g.status === "archived" ? 100 : 0,
           completed: g.status === "archived",
           plant: plant_title,
-          dueDate: undefined,
+          dueDate: g.due_date ?? undefined,
         } satisfies GoalPayload;
       });
     },  // <-- closes queryFn
@@ -142,5 +157,40 @@ export function useGoalsApi(userID: number) {
     onSettled: () => qc.invalidateQueries({ queryKey }),
   });
 
-  return { ...query, createGoals, removeGoals, archiveGoals };
+  const updateGoals = useMutation({
+    mutationFn: (goal_list: UpdateGoalItem[]) =>
+      apiFetch<{ message: string }>(API_URL, {
+        method: "POST",
+        body: JSON.stringify({ api_type: "update", userID, goal_list } satisfies UpdateGoalsPayload),
+      }),
+    onMutate: async (goal_list) => {
+      await qc.cancelQueries({ queryKey });
+      const prev = qc.getQueryData<GoalPayload[]>(queryKey);
+      qc.setQueryData<GoalPayload[]>(queryKey, (old) =>
+        old?.map((g) => {
+          const update = goal_list.find((u) => String(u.goal_id) === g.id);
+          if (!update) return g;
+          const next: GoalPayload = { ...g };
+          if (update.due_date !== undefined) next.dueDate = update.due_date ?? undefined;
+          if (update.description !== undefined) {
+            if (g.type === "plant") {
+              const { plant_title, description } = decodePlantDescription(update.description);
+              next.plant = plant_title;
+              next.description = description;
+            } else {
+              next.description = update.description;
+            }
+          }
+          return next;
+        }) ?? []
+      );
+      return { prev };
+    },
+    onError: (_err, _vars, ctx) => {
+      if (ctx?.prev) qc.setQueryData(queryKey, ctx.prev);
+    },
+    onSettled: () => qc.invalidateQueries({ queryKey }),
+  });
+
+  return { ...query, createGoals, removeGoals, archiveGoals, updateGoals };
 }  // <-- closes useGoalsApi

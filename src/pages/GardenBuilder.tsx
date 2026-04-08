@@ -1,5 +1,5 @@
-import { useState, useCallback, useMemo, useRef } from "react";
-import { useGardenLayout } from "@/hooks/api/useGardenLayout";
+import { useState, useCallback, useMemo, useRef, useEffect } from "react";
+import { useGardenApi } from "@/hooks/api/useGardenApi";
 import { motion } from "framer-motion";
 import {
   ReactFlow,
@@ -54,60 +54,6 @@ const nodeTypes = {
 const EDGE_GROUP_PLANT = "hsl(142, 45%, 38%)";  // leaf green
 const EDGE_SENSOR = "hsl(200, 75%, 55%)";         // sky blue
 
-const initialNodes: Node[] = [
-  {
-    id: "group-1",
-    type: "group",
-    position: { x: 100, y: 80 },
-    data: { label: "Vegetable Patch", plants: 2 },
-  },
-  {
-    id: "plant-1",
-    type: "plant",
-    position: { x: 80, y: 250 },
-    data: { label: "Tomatoes", variety: "Cherry", health: 92 },
-  },
-  {
-    id: "plant-2",
-    type: "plant",
-    position: { x: 300, y: 250 },
-    data: { label: "Basil", variety: "Sweet", health: 78 },
-  },
-  {
-    id: "sensor-1",
-    type: "sensor",
-    position: { x: 350, y: 100 },
-    data: { label: "Moisture Sensor", type: "moisture", value: 54 },
-  },
-];
-
-const initialEdges: Edge[] = [
-  {
-    id: "e1-2",
-    source: "group-1",
-    target: "plant-1",
-    type: "smoothstep",
-    markerEnd: { type: MarkerType.ArrowClosed },
-    style: { stroke: EDGE_GROUP_PLANT },
-  },
-  {
-    id: "e1-3",
-    source: "group-1",
-    target: "plant-2",
-    type: "smoothstep",
-    markerEnd: { type: MarkerType.ArrowClosed },
-    style: { stroke: EDGE_GROUP_PLANT },
-  },
-  {
-    id: "e2-s1",
-    source: "plant-1",
-    target: "sensor-1",
-    type: "smoothstep",
-    animated: true,
-    markerEnd: { type: MarkerType.ArrowClosed },
-    style: { stroke: EDGE_SENSOR },
-  },
-];
 
 /** Returns true if the connection type is structurally valid (ignores cardinality). */
 function isAllowedType(srcType: string | undefined, tgtType: string | undefined): boolean {
@@ -119,16 +65,22 @@ function isAllowedType(srcType: string | undefined, tgtType: string | undefined)
 }
 
 function GardenBuilderInner() {
-  const { data: savedLayout, saveLayout } = useGardenLayout();
+  const { data: gardenData, isLoading: gardenLoading, saveGarden } = useGardenApi();
   const { toast } = useToast();
   const { fitView } = useReactFlow();
 
-  const [nodes, setNodes, onNodesChange] = useNodesState(
-    (savedLayout?.nodes as Node[]) ?? initialNodes
-  );
-  const [edges, setEdges, onEdgesChange] = useEdgesState(
-    (savedLayout?.edges as Edge[]) ?? initialEdges
-  );
+  const [nodes, setNodes, onNodesChange] = useNodesState([]);
+  const [edges, setEdges, onEdgesChange] = useEdgesState([]);
+
+  // Populate canvas from DB data once loaded
+  useEffect(() => {
+    if (gardenData) {
+      setNodes(gardenData.nodes as Node[]);
+      setEdges(gardenData.edges as Edge[]);
+      setTimeout(() => fitView({ duration: 300, padding: 0.15 }), 50);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [gardenData]);
   const [pendingNodeType, setPendingNodeType] = useState<NodeType | null>(null);
   const [edgeMenu, setEdgeMenu] = useState<{ edgeId: string; x: number; y: number } | null>(null);
   const [nodeMenu, setNodeMenu] = useState<{ nodeId: string; nodeType: string | undefined; x: number; y: number } | null>(null);
@@ -423,27 +375,24 @@ function GardenBuilderInner() {
               variant="nature"
               size="sm"
               className="gap-2"
+              disabled={saveGarden.isPending}
               onClick={() =>
-                saveLayout.mutate({
-                  nodes: nodes.map((n) => ({
-                    id: n.id,
-                    type: n.type as "plant" | "sensor" | "group",
-                    position: n.position,
-                    data: n.data as any,
-                  })),
-                  edges: edges.map((e) => ({
-                    id: e.id,
-                    source: e.source,
-                    target: e.target,
-                    type: e.type,
-                    animated: e.animated,
-                    style: e.style as any,
-                  })),
-                })
+                saveGarden.mutate(
+                  { currentNodes: nodes, currentEdges: edges },
+                  {
+                    onSuccess: () => toast({ title: "Garden saved" }),
+                    onError: (err) =>
+                      toast({
+                        title: "Failed to save garden",
+                        description: (err as Error).message,
+                        variant: "destructive",
+                      }),
+                  }
+                )
               }
             >
               <Save className="w-4 h-4" />
-              Save Layout
+              {saveGarden.isPending ? "Saving…" : "Save Layout"}
             </Button>
           </div>
         </div>
@@ -579,6 +528,18 @@ function GardenBuilderInner() {
 
         {/* Canvas */}
         <div className="flex-1 relative">
+          {gardenLoading && (
+            <div className="absolute inset-0 z-20 flex items-center justify-center bg-background/60 backdrop-blur-sm">
+              <p className="text-muted-foreground text-sm">Loading garden…</p>
+            </div>
+          )}
+          {!gardenLoading && nodes.length === 0 && (
+            <div className="absolute inset-0 z-10 flex flex-col items-center justify-center pointer-events-none gap-2">
+              <Layers className="w-10 h-10 text-muted-foreground/40" />
+              <p className="text-lg font-medium text-muted-foreground/60">Start building your garden!</p>
+              <p className="text-sm text-muted-foreground/40">Add a group, plant, or sensor from the sidebar.</p>
+            </div>
+          )}
           <ReactFlow
             nodes={nodes}
             edges={edges}

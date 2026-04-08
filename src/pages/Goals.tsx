@@ -22,7 +22,9 @@ import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
 import { useGoals, GoalType } from "@/contexts/GoalsContext";
+import type { Goal } from "@/contexts/GoalsContext";
 import { AddGoalModal } from "@/components/goals/AddGoalModal";
+import { EditGoalModal } from "@/components/goals/EditGoalModal";
 
 const containerVariants = {
   hidden: { opacity: 0 },
@@ -35,9 +37,12 @@ const itemVariants = {
 };
 
 export default function Goals() {
-  const { goals, toggleComplete, updateGoalDueDate, addGoal, removeGoal } = useGoals();
+  const { goals, toggleComplete, updateGoalDueDate, updateGoal, addGoal, removeGoal } = useGoals();
   const [modalOpen, setModalOpen] = useState(false);
+  const [editingGoal, setEditingGoal] = useState<Goal | null>(null);
   const [activeTab, setActiveTab] = useState<GoalType | "archived">("long-term");
+  const [openPopoverId, setOpenPopoverId] = useState<string | null>(null);
+  const [pendingDates, setPendingDates] = useState<Record<string, Date | undefined>>({});
 
   const tabGoals = activeTab === "archived"
     ? goals.filter((g) => g.completed)
@@ -195,7 +200,7 @@ export default function Goals() {
                               )}
                             </div>
                             <div className="flex items-center gap-2 shrink-0">
-                              <Button variant="ghost" size="icon" className="h-8 w-8">
+                              <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setEditingGoal(goal)}>
                                 <Edit2 className="w-4 h-4" />
                               </Button>
                               <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => removeGoal(goal.id)}>
@@ -219,7 +224,10 @@ export default function Goals() {
                                 />
                               </div>
                             </div>
-                            <Popover>
+                            <Popover open={openPopoverId === goal.id} onOpenChange={(open) => {
+                              setOpenPopoverId(open ? goal.id : null);
+                              if (!open) setPendingDates((prev) => { const next = { ...prev }; delete next[goal.id]; return next; });
+                            }}>
                               <PopoverTrigger asChild>
                                 <Button variant="ghost" size="sm" className={cn("gap-1 text-xs shrink-0", goal.dueDate ? "text-foreground" : "text-muted-foreground")}>
                                   <CalendarIcon className="w-3 h-3" />
@@ -229,11 +237,27 @@ export default function Goals() {
                               <PopoverContent className="w-auto p-0" align="end">
                                 <Calendar
                                   mode="single"
-                                  selected={goal.dueDate ? new Date(goal.dueDate + "T00:00:00") : undefined}
-                                  onSelect={(date) => updateGoalDueDate(goal.id, date ? format(date, "yyyy-MM-dd") : undefined)}
+                                  selected={pendingDates[goal.id] ?? (goal.dueDate ? new Date(goal.dueDate + "T00:00:00") : undefined)}
+                                  onSelect={(date) => setPendingDates((prev) => ({ ...prev, [goal.id]: date }))}
                                   initialFocus
                                   className="p-3 pointer-events-auto"
                                 />
+                                <div className="flex items-center justify-end gap-2 px-3 pb-3">
+                                  <Button variant="ghost" size="sm" onClick={() => {
+                                    setPendingDates((prev) => { const next = { ...prev }; delete next[goal.id]; return next; });
+                                    setOpenPopoverId(null);
+                                  }}>
+                                    Cancel
+                                  </Button>
+                                  <Button variant="nature" size="sm" disabled={!(goal.id in pendingDates)} onClick={() => {
+                                    const pending = pendingDates[goal.id];
+                                    updateGoalDueDate(goal.id, pending ? format(pending, "yyyy-MM-dd") : undefined);
+                                    setPendingDates((prev) => { const next = { ...prev }; delete next[goal.id]; return next; });
+                                    setOpenPopoverId(null);
+                                  }}>
+                                    Confirm
+                                  </Button>
+                                </div>
                               </PopoverContent>
                             </Popover>
                           </div>
@@ -274,6 +298,11 @@ export default function Goals() {
         open={modalOpen}
         onClose={() => setModalOpen(false)}
         onSubmit={addGoal}
+        />
+      <EditGoalModal
+        goal={editingGoal}
+        onClose={() => setEditingGoal(null)}
+        onSubmit={updateGoal}
         />
     </div>
   );

@@ -8,79 +8,47 @@ import { Label } from "@/components/ui/label";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
-import type { GoalType } from "@/contexts/GoalsContext";
-import type { GoalItem } from "@/hooks/api/useGoalsApi";
+import type { Goal } from "@/contexts/GoalsContext";
 
-interface AddGoalModalProps {
-  open: boolean;
+interface EditGoalModalProps {
+  goal: Goal | null;
   onClose: () => void;
-  onSubmit: (goal: GoalItem) => void;
+  onSubmit: (id: string, updates: { description: string; plant?: string; dueDate?: string | null }) => void;
 }
 
-export function AddGoalModal({ open, onClose, onSubmit }: AddGoalModalProps) {
-  const [description, setDescription] = useState("");
-  const [goalType, setGoalType] = useState<GoalType>("long-term");
-  const [plantTitle, setPlantTitle] = useState("");
-  const [dueDate, setDueDate] = useState<Date | undefined>();
+export function EditGoalModal({ goal, onClose, onSubmit }: EditGoalModalProps) {
+  const [description, setDescription] = useState(goal?.description ?? "");
+  const [plantTitle, setPlantTitle] = useState(goal?.plant ?? "");
+  const [dueDate, setDueDate] = useState<Date | undefined>(
+    goal?.dueDate ? new Date(goal.dueDate + "T00:00:00") : undefined
+  );
+
+  if (!goal) return null;
 
   const handleSubmit = () => {
     if (!description.trim()) return;
-
-    const goal: GoalItem = {
-      goal_type: goalType,
+    onSubmit(goal.id, {
       description: description.trim(),
-      ...(goalType === "plant" && { plant_title: plantTitle.trim() }),
-      ...(dueDate && { due_date: format(dueDate, "yyyy-MM-dd") }),
-    };
-
-    onSubmit(goal);
-    handleClose();
-  };
-
-  const handleClose = () => {
-    setDescription("");
-    setGoalType("long-term");
-    setPlantTitle("");
-    setDueDate(undefined);
+      ...(goal.type === "plant" && { plant: plantTitle.trim() }),
+      dueDate: dueDate ? format(dueDate, "yyyy-MM-dd") : null,
+    });
     onClose();
   };
 
   return (
-    <Dialog open={open} onOpenChange={handleClose}>
+    <Dialog open={!!goal} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>Add Goal</DialogTitle>
+          <DialogTitle>Edit Goal</DialogTitle>
         </DialogHeader>
 
         <div className="space-y-4 py-2">
-          {/* Goal Type */}
-          <div className="space-y-2">
-            <Label>Goal type</Label>
-            <div className="flex gap-2">
-              {(["long-term", "short-term", "plant"] as GoalType[]).map((type) => (
-                <button
-                  key={type}
-                  onClick={() => setGoalType(type)}
-                  className={cn(
-                    "flex-1 py-2 px-3 rounded-lg text-sm font-medium border transition-all",
-                    goalType === type
-                      ? "bg-leaf text-white border-leaf"
-                      : "border-border text-muted-foreground hover:text-foreground"
-                  )}
-                >
-                  {type === "long-term" ? "Long-term" : type === "short-term" ? "Short-term" : "Plant"}
-                </button>
-              ))}
-            </div>
-          </div>
-
           {/* Plant Title (only for plant goals) */}
-          {goalType === "plant" && (
+          {goal.type === "plant" && (
             <div className="space-y-2">
               <Label htmlFor="plant-title">Plant name</Label>
               <Input
                 id="plant-title"
-                placeholder="e.g. Tomatoes"
                 value={plantTitle}
                 onChange={(e) => setPlantTitle(e.target.value)}
               />
@@ -92,7 +60,6 @@ export function AddGoalModal({ open, onClose, onSubmit }: AddGoalModalProps) {
             <Label htmlFor="description">Description</Label>
             <Input
               id="description"
-              placeholder="Describe your goal..."
               value={description}
               onChange={(e) => setDescription(e.target.value)}
             />
@@ -100,7 +67,7 @@ export function AddGoalModal({ open, onClose, onSubmit }: AddGoalModalProps) {
 
           {/* Due Date */}
           <div className="space-y-2">
-            <Label>Due date (optional)</Label>
+            <Label>Due date</Label>
             <Popover>
               <PopoverTrigger asChild>
                 <Button
@@ -108,7 +75,7 @@ export function AddGoalModal({ open, onClose, onSubmit }: AddGoalModalProps) {
                   className={cn("w-full justify-start gap-2 font-normal", !dueDate && "text-muted-foreground")}
                 >
                   <CalendarIcon className="w-4 h-4" />
-                  {dueDate ? format(dueDate, "MMM d, yyyy") : "Pick a date"}
+                  {dueDate ? format(dueDate, "MMM d, yyyy") : "No due date"}
                 </Button>
               </PopoverTrigger>
               <PopoverContent className="w-auto p-0" align="start">
@@ -119,15 +86,22 @@ export function AddGoalModal({ open, onClose, onSubmit }: AddGoalModalProps) {
                   initialFocus
                   className="p-3 pointer-events-auto"
                 />
+                {dueDate && (
+                  <div className="px-3 pb-3">
+                    <Button variant="ghost" size="sm" className="w-full text-muted-foreground" onClick={() => setDueDate(undefined)}>
+                      Clear date
+                    </Button>
+                  </div>
+                )}
               </PopoverContent>
             </Popover>
           </div>
         </div>
 
         <DialogFooter>
-          <Button variant="ghost" onClick={handleClose}>Cancel</Button>
+          <Button variant="ghost" onClick={onClose}>Cancel</Button>
           <Button variant="nature" onClick={handleSubmit} disabled={!description.trim()}>
-            Add Goal
+            Save Changes
           </Button>
         </DialogFooter>
       </DialogContent>

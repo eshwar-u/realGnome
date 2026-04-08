@@ -12,6 +12,7 @@ import {
   Menu,
   LogOut,
   CalendarDays,
+  ScanLine,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -22,6 +23,7 @@ const navItems = [
   { to: "/garden", icon: Leaf, label: "Garden Builder" },
   { to: "/calendar", icon: CalendarDays, label: "Calendar" },
   { to: "/goals", icon: Target, label: "Goals" },
+  { to: "/analyse", icon: ScanLine, label: "Visual Analyser" },
 ];
 
 export function AppLayout() {

@@ -33,6 +33,7 @@ interface GoalsContextType {
   setGoals: React.Dispatch<React.SetStateAction<Goal[]>>;
   toggleComplete: (id: string) => void;
   updateGoalDueDate: (id: string, date: string | undefined) => void;
+  updateGoal: (id: string, updates: { description: string; plant?: string; dueDate?: string | null }) => void;
   isApiConnected: boolean;
 }
 
@@ -40,7 +41,7 @@ const GoalsContext = createContext<GoalsContextType | undefined>(undefined);
 
 export function GoalsProvider({ children }: { children: ReactNode }) {
   const userID = Number(localStorage.getItem("user_id") ?? 0);
-  const { data: apiGoals, isSuccess, createGoals, removeGoals, archiveGoals } = useGoalsApi(userID);
+  const { data: apiGoals, isSuccess, createGoals, removeGoals, archiveGoals, updateGoals } = useGoalsApi(userID);
 
   const goals: Goal[] = (isSuccess && apiGoals) ? apiGoals as Goal[] : [];
   const isApiConnected = isSuccess;
@@ -54,8 +55,23 @@ export function GoalsProvider({ children }: { children: ReactNode }) {
 
   const updateGoalDueDate = useCallback(
     (id: string, date: string | undefined) => {
-      // local only for now
-    }, []
+      updateGoals.mutate([{ goal_id: Number(id), due_date: date ?? null }]);
+    },
+    [updateGoals]
+  );
+
+  const updateGoal = useCallback(
+    (id: string, updates: { description: string; plant?: string; dueDate?: string | null }) => {
+      const encodedDescription = updates.plant !== undefined
+        ? `${updates.plant.length}${updates.plant}${updates.description}`
+        : updates.description;
+      updateGoals.mutate([{
+        goal_id: Number(id),
+        description: encodedDescription,
+        due_date: updates.dueDate ?? null,
+      }]);
+    },
+    [updateGoals]
   );
 
   const addGoal = useCallback(
@@ -73,7 +89,7 @@ export function GoalsProvider({ children }: { children: ReactNode }) {
   );
 
   return (
-    <GoalsContext.Provider value={{ goals, setGoals: () => {}, toggleComplete, updateGoalDueDate, addGoal, removeGoal, isApiConnected }}>
+    <GoalsContext.Provider value={{ goals, setGoals: () => {}, toggleComplete, updateGoalDueDate, updateGoal, addGoal, removeGoal, isApiConnected }}>
       {children}
     </GoalsContext.Provider>
   );
