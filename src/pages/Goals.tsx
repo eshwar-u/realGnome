@@ -290,7 +290,7 @@ export default function Goals() {
                   <Target className="w-8 h-8 text-muted-foreground" />
                 </div>
                 <h3 className="font-display font-semibold text-foreground mb-2">
-                  {activeTab === "archived" ? "No completed goals yet" : "No goals yet"}
+                  {activeTab === "archived" ? "No feted goals yet" : "No goals yet"}
                 </h3>
                 <p className="text-muted-foreground mb-4">
                   {activeTab === "archived" ? "Complete a goal to see it here" : "Add your first goal to start tracking your garden progress"}
